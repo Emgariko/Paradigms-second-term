@@ -18,7 +18,7 @@ public class ExceptionsPowLog2Test extends ExceptionsTest {
                 op("log2-5", (x, y, z) -> error(NEG_LOG)),
                 op("pow2 4", (x, y, z) -> 16),
                 op("pow2 8", (x, y, z) -> 256),
-                //op("pow2 x * y * z", (x, y, z) -> pow2(x) * y * z),
+                op("pow2 x * y * z", (x, y, z) -> pow2(x) * y * z),
                 op("pow2(x * y * z)", (x, y, z) -> pow2(x * y * z))
         ));
         parsingTest.addAll(List.of(

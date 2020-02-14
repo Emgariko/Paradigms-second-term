@@ -12,10 +12,8 @@ public class CheckedLog2 implements CommonExpression {
     @Override
     public int evaluate(int x) {
         int val = exp.evaluate(x);
-        if (val <= 0) {
-            throw new LogByNonPositiveException("Log2(" + Integer.toString(val) + ")");
-        }
         int res = calcLog2(val);
+        ExceptionGenerator.checkOperation(val, 14, "LOG2");
         return res;
     }
 
@@ -43,7 +41,7 @@ public class CheckedLog2 implements CommonExpression {
 
     @Override
     public int evaluate(int x, int y, int z) {
-        int val = exp.evaluate(x);
+        int val = exp.evaluate(x, y, z);
         int res = calcLog2(val);
         ExceptionGenerator.checkOperation(val, 14, "LOG2");
         return res;

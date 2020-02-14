@@ -86,12 +86,12 @@ public class ExpressionParser extends BaseParser implements Parser {
                 parseToken(false);
                 return res;
             case LOG2:
-                res = new CheckedLog2(parseTerm(true, false));
-                parseToken(false);
+                res = new CheckedLog2(parseElement(true, false));
+                //parseToken(false);
                 return res;
             case POW2:
-                res = new CheckedPow2(parseTerm(true, false));
-                parseToken(false);
+                res = new CheckedPow2(parseElement(true, false));
+                //parseToken(false);
                 return res;
             default:
                 throw new ParsingException("Unexpected symbol", this.source.getPos());
@@ -117,6 +117,9 @@ public class ExpressionParser extends BaseParser implements Parser {
             return curToken = TokenType.VAR;
         } else if (test('l')) {
             if (expect("og2")) {
+                if (test('x') || test('y') || test('z')) {
+                    throw new ParsingException("Unexpected variable", this.source.getPos());
+                }
                 return curToken = TokenType.LOG2;
             } else {
                 throw new ParsingException("Expected 'log2'", this.source.getPos());

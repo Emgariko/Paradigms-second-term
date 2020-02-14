@@ -33,6 +33,7 @@
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
+    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/123/hw1_expressionParserAndExceptions" />
     <property name="nodejs_package_manager_path" value="npm" />
   </component>
   <component name="RecentsManager">
@@ -123,7 +124,7 @@
       <option name="presentableId" value="Default" />
       <updated>1581361085037</updated>
       <workItem from="1581361086451" duration="37152000" />
-      <workItem from="1581595267762" duration="32062000" />
+      <workItem from="1581595267762" duration="40460000" />
     </task>
     <servers />
   </component>
@@ -145,8 +146,8 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/expression/exceptions/Main.java</url>
-          <line>21</line>
-          <option name="timeStamp" value="36" />
+          <line>19</line>
+          <option name="timeStamp" value="46" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
