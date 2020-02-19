@@ -20,6 +20,6 @@ public class Main {
         ExpressionParser parser = new ExpressionParser();
         CommonExpression exp = parser.parse(scanner.nextLine());
         System.out.println(exp.toMiniString());
-        System.out.println(exp.evaluate(1469767482, 453270128,-78691152));
+        System.out.println(exp.evaluate(2, 4, 8));
     }
 }

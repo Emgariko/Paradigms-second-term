@@ -11,9 +11,16 @@ public class CheckedMultiply extends AbstractOperation {
     protected int getPriority() {
         return 2;
     }
+
+    public static boolean checkOverflow(int c, int d) throws OverflowMultiplyException {
+        return c == Integer.MIN_VALUE && d == -1|| c != 0 && d != 0 && (c * d) / d != c;
+    }
+
     @Override
     public int makeOperation(int c, int d) {
-        ExceptionGenerator.checkOperation(c, d, "MUL");
+        if (checkOverflow(c, d)) {
+            throw new OverflowMultiplyException(Integer.toString(c) + " * " + Integer.toString(d));
+        }
         return c * d;
     }
 
