@@ -1,37 +1,20 @@
 package expression;
 
-import expression.exceptions.ExceptionGenerator;
-import expression.exceptions.LogByNonPositiveException;
+import expression.exceptions.InvalidLogArgumentsException;
 
-public class CheckedLog2 implements CommonExpression {
-    CommonExpression exp;
+public class CheckedLog2 extends UnaryOperation{
     public CheckedLog2(CommonExpression expression) {
-        exp = expression;
+        super(expression);
     }
 
     @Override
     public int evaluate(int x) {
         int val = exp.evaluate(x);
-        int res = calcLog2(val);
-        ExceptionGenerator.checkOperation(val, 14, "LOG2");
-        return res;
-    }
-
-    private int calcLog2(int val) {
-        int x = val, res = 0;
-        /* while (x < val) {
-            if (x >= Integer.MAX_VALUE / 2) {
-                x = val;
-            } else {
-                x *= 2;
-            }
-            res++;
-        } */
-        while (x > 0) {
-            x /= 2;
-            res++;
+        int res = CheckedLog.calcLog(val, 2);
+        if (res <= 0) {
+            throw new InvalidLogArgumentsException("Log2(" + Integer.toString(res) + ")");
         }
-        return res - 1;
+        return res;
     }
 
     @Override
@@ -42,8 +25,10 @@ public class CheckedLog2 implements CommonExpression {
     @Override
     public int evaluate(int x, int y, int z) {
         int val = exp.evaluate(x, y, z);
-        int res = calcLog2(val);
-        ExceptionGenerator.checkOperation(val, 14, "LOG2");
+        if (val <= 0) {
+            throw new InvalidLogArgumentsException("Log_(2)(" + Integer.toString(val) + ")");
+        }
+        int res = CheckedLog.calcLog(val, 2);
         return res;
     }
     @Override

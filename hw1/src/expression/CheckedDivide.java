@@ -13,7 +13,13 @@ public class CheckedDivide extends AbstractOperation {
     }
 
     public int makeOperation(int c, int d) {
-        ExceptionGenerator.checkOperation(c, d, "DIV");
+        if (c == Integer.MIN_VALUE && d == -1) {
+            throw new OverflowDivideExcpetpion(Integer.toString(c) + " / " + Integer.toString(d));
+        }
+        if (d == 0) {
+            String msg = new String(Integer.toString(c) + " / " + Integer.toString(d));
+            throw new DivisionByZeroException(msg);
+        }
         return c / d;
     }
 

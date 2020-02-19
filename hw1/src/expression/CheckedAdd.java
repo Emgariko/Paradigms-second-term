@@ -13,7 +13,10 @@ public class CheckedAdd extends AbstractOperation {
     }
     @Override
     public int makeOperation(int c, int d) {
-        ExceptionGenerator.checkOperation(c, d, "ADD");
+        int res = c + d;
+        if (d > 0 && res < c || d < 0 && res > c) {
+            throw new OverflowAddException(Integer.toString(c) + " + " + Integer.toString(d));
+        }
         return c + d;
     }
 
