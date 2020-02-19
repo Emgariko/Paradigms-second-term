@@ -13,7 +13,10 @@ public class CheckedSubtract extends AbstractOperation {
     }
 
     public int makeOperation(int c, int d) {
-        ExceptionGenerator.checkOperation(c, d, "SUB");
+        int res = c - d;
+        if (d > 0 && res > c || d < 0 && res < c) {
+            throw new OverflowSubstractException(Integer.toString(c) + " - " + Integer.toString(d));
+        }
         return c - d;
     }
 
