@@ -33,16 +33,16 @@
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="last_opened_file_path" value="$USER_HOME$/Desktop/123/hw1_expressionParserAndExceptions" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_package_manager_path" value="npm" />
   </component>
   <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
     <key name="CreateClassDialog.RecentsKey">
       <recent name="expression.exceptions" />
       <recent name="expression" />
-    </key>
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -57,7 +57,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Application.hw1ParserExceptionTest">
+  <component name="RunManager" selected="Application.hw1ParserPowLog2Test">
     <configuration name="Main" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="expression.exceptions.Main" />
       <module name="hw1" />
@@ -125,7 +125,8 @@
       <updated>1581361085037</updated>
       <workItem from="1581361086451" duration="37152000" />
       <workItem from="1581595267762" duration="46234000" />
-      <workItem from="1582109196180" duration="19531000" />
+      <workItem from="1582109196180" duration="21911000" />
+      <workItem from="1582201226739" duration="7176000" />
     </task>
     <servers />
   </component>
@@ -159,6 +160,11 @@
           <url>file://$PROJECT_DIR$/src/expression/exceptions/Main.java</url>
           <line>22</line>
           <option name="timeStamp" value="53" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/expression/parser/ExpressionParser.java</url>
+          <line>106</line>
+          <option name="timeStamp" value="58" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -1,8 +1,6 @@
 package expression.exceptions;
 
-import expression.parser.ExpressionParser;
-
-public class ParsingException extends ExpressionException {
+public abstract class ParsingException extends Exception {
     public ParsingException(String msg, int pos) {
         super("Parsing error at " + Integer.toString(pos) + ", " + msg + ".");
     }

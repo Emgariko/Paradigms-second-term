@@ -20,7 +20,7 @@ public class CheckedPow extends AbstractOperation {
     @Override
     protected int makeOperation(int c, int d) {
         if (c == 0 && d == 0 || d < 0) {
-            throw new InvalidPowArguments("(" + Integer.toString(c) +  " ** " + Integer.toString(d) + ")");
+            throw new InvalidPowArgumentsException("(" + Integer.toString(c) +  " ** " + Integer.toString(d) + ")");
         }
         return caclPow(c, d);
     }

@@ -12,7 +12,7 @@ public class CheckedPow2 extends UnaryOperation {
     public int evaluate(int x) {
         int val = exp.evaluate(x);
         if (val < 0) {
-            throw new InvalidPowArguments("Pow2(" + Integer.toString(val) + ")");
+            throw new InvalidPowArgumentsException("Pow2(" + Integer.toString(val) + ")");
         }
         int res = calcPow2(val);
         return res;
@@ -35,7 +35,7 @@ public class CheckedPow2 extends UnaryOperation {
     public int evaluate(int x, int y, int z) {
         int val = exp.evaluate(x, y, z);
         if (val < 0) {
-            throw new InvalidPowArguments("Pow2(" + Integer.toString(val) + ")");
+            throw new InvalidPowArgumentsException("Pow2(" + Integer.toString(val) + ")");
         }
         int res = calcPow2(val);
         return res;

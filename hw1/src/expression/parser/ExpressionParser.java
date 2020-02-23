@@ -1,9 +1,9 @@
 package expression.parser;
 
 import expression.*;
-import expression.exceptions.Parser;
-import expression.exceptions.ParsingException;
+import expression.exceptions.*;
 
+import java.rmi.UnexpectedException;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,10 +28,10 @@ public class ExpressionParser extends BaseParser implements Parser {
         this.source = new StringSource(expression);
         nextChar();
         parseToken(true);
-    return parseLevel(0, false, false);
+        return parseLevel(0, false, false);
     }
 
-    private CommonExpression parseLevel(int level, boolean get, boolean expect) {
+    private CommonExpression parseLevel(int level, boolean get, boolean expect) throws ParsingException {
         CommonExpression left = null;
         if (level == highestLevel) {
             return parseElement(get, expect);
@@ -45,18 +45,20 @@ public class ExpressionParser extends BaseParser implements Parser {
             } else {
                 if (levelType.get(level) == TokenType.MUL) {
                     if (curToken == TokenType.NUMBER) {
-                        throw new ParsingException("Unexpected number", this.source.getPos());
+                        throw new UnexpectedNumberException(this.source.getPos());
+                        //throw new ParsinggException("Unexpected number", this.source.getPos());
                     }
                 }
                 if (levelType.get(level) == TokenType.ADD) {
                     if (expect && curToken != TokenType.RB) {
-                        throw new ParsingException("Expected symbol ')'", this.source.getPos());
+                        throw new MissingBracketException(")", this.source.getPos());
+                        //throw new ParsinggException("Expected symbol ')'", this.source.getPos());
                     }
                     if (!expect && curToken == TokenType.RB) {
-                        throw new ParsingException("Unexpected symbol ')'", this.source.getPos());
+                        throw new ParsinggException("Unexpected symbol ')'", this.source.getPos());
                     }
                     if (curToken == TokenType.LB) {
-                        throw new ParsingException("Unexpected symbol '('", this.source.getPos());
+                        throw new ParsinggException("Unexpected symbol '('", this.source.getPos());
                     }
                 }
                 return left;
@@ -83,7 +85,7 @@ public class ExpressionParser extends BaseParser implements Parser {
         }
     }
 
-    private CommonExpression parseElement(boolean get, boolean expect) {
+    private CommonExpression parseElement(boolean get, boolean expect) throws ParsingException {
         if (get) {
             parseToken(get);
         }
@@ -104,7 +106,8 @@ public class ExpressionParser extends BaseParser implements Parser {
             case LB:
                 res = parseLevel(0, true, true);
                 if (curToken != TokenType.RB) {
-                    throw new ParsingException("Expected symbol ')'", this.source.getPos());
+                    throw new MissingBracketException(")", this.source.getPos());
+                    //throw new ParsinggException("Expected symbol ')'", this.source.getPos());
                 }
                 parseToken(false);
                 return res;
@@ -115,8 +118,19 @@ public class ExpressionParser extends BaseParser implements Parser {
                 res = new CheckedPow2(parseElement(true, false));
                 return res;
             default:
-                throw new ParsingException("Unexpected symbol", this.source.getPos());
+                switch (curToken){
+                    case RB:
+                        throw new ParsinggException("There is no arguments", this.source.getPos());
+                    case ADD:
+                        throw new ParsinggException("Missing argument", this.source.getPos());
+                    /*case END:
+                        throw new ParsingException("Ex", this.source.getPos());*/
+
+                }
+                throw new ParsinggException("Missing argument or unexpected symbol", this.source.getPos());
+                //throw new ParsingException("Unexpected symbol", this.source.getPos());
         }
+        //return null;
     }
 
     private TokenType parseToken(boolean get) {
@@ -139,17 +153,17 @@ public class ExpressionParser extends BaseParser implements Parser {
         } else if (test('l')) {
             if (expect("og2")) {
                 if (test('x') || test('y') || test('z')) {
-                    throw new ParsingException("Unexpected variable", this.source.getPos());
+                    throw new ParsinggException("Unexpected variable", this.source.getPos());
                 }
                 return curToken = TokenType.LOG2;
             } else {
-                throw new ParsingException("Expected 'log2'", this.source.getPos());
+                throw new ParsinggException("Expected 'log2'", this.source.getPos());
             }
         } else if (test('p')) {
             if (expect("ow2")) {
                 return curToken = TokenType.POW2;
             } else {
-                throw new ParsingException("Expected 'pow2'", this.source.getPos());
+                throw new ParsinggException("Expected 'pow2'", this.source.getPos());
             }
         } else if (test('+')) {
             return curToken = TokenType.ADD;
@@ -172,7 +186,7 @@ public class ExpressionParser extends BaseParser implements Parser {
         } else if (ch == '\0') {
             return curToken = TokenType.END;
         } else {
-            throw new ParsingException("Unknown symbol", this.source.getPos());
+            throw new ParsinggException("Unknown symbol", this.source.getPos());
         }
     }
 
@@ -194,7 +208,13 @@ public class ExpressionParser extends BaseParser implements Parser {
             res.append(ch);
             nextChar();
         }
-        return Integer.valueOf(res.toString());
+        int result;
+        try {
+            result = Integer.valueOf(res.toString());
+        } catch (NumberFormatException e) {
+            throw new OverflowPowException(res.toString());
+        }
+        return result;
     }
 
     private void skipWhitespace() {
