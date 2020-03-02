@@ -10,7 +10,7 @@ import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ParsingException {
         Scanner scanner = null;
         try {
             scanner = new Scanner(new File("input.txt"));

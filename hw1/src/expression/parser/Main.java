@@ -5,10 +5,11 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import expression.CommonExpression;
 import expression.TripleExpression;
+import expression.exceptions.ParsingException;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ParsingException {
         Scanner scanner = null;
         try {
             scanner = new Scanner(new File("input.txt"));
