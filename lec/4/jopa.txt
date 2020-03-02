@@ -1,0 +1,75 @@
+Внутренний класс хранит ссылку на внешний.
+*имя внешнего класса*.this - ссылка на внешний класс.
+Если ссылка на внешний класс не нужна то пишем static, поля с этой ссылкой просто не будет.
+
+private static void fill(final Object stack, final Object e) {
+	for (int i = 0; i < 10; i++) {
+		push(stack, e);
+	}
+}
+
+private static void push(Object stack, Object e) {
+	if (stack instanceof LinkedStack) { // instanceof долгий
+		((LinkedStack) stack).push(e);
+	} else if (instanceof ArrayStack) {
+		((ArrayStack) stack).push(e);
+	} else {
+		// throw new Vzlom jopi;
+	}
+}
+
+Эта реализация плохая, потому что если будет новый стек надо будет добавлять ифы ...
+
+Таблицы виртуальных функций.
+Для каждого класса храним ссылку на ту конкретную реализацию, которая нам нужна.
+
+ArrayStack:
+1)push -> ArrayStack.push
+2)pop -> ArrayStack.pop
+
+LinkedStack:
+1)push -> LinkedStack.push
+2)pop -> LinkedStack.pop
+
+Получается что для каждого класса надо хранить таблицу виртуальных функций со всеми методами, но там мы не храним static методы(потому что они не хранят никуда ссылок).
+
+
+Псевдокод:
+private static void push(Object stack, Object e) {
+	stack.vtbl["push"](e);
+}
+
+Но в джаве нельзя хранить ссылку на функцию.
+
+Реализация:
+
+//AbstractStack - интерфейс.
+
+private static void push(AbstractStack stack, Object e) {
+	stack.push(e);
+}
+
+В интерфесе пронумеруем абстрактные методы. Тогда вызов функции будет выглядеть вот так:
+
+Псевдокод:
+private static void push(Object stack, Object e) {
+	stack.vtbl["0"](e); // 0 - номер абстрактного метода push в AbstractStack
+}
+
+>Ерундну нельзя писать в общих методах.
+
+Какие-то частные разные методы можно добавлять в таблички разных классов под одинаковым номером.
+
+AS:
+7)replace
+BS:
+7)printjopa
+
+Классы в одном пакете protected так же для классов в одном пакете. //локально или глобально??
+
+
+Двигаем вначало все переменные в абстрактном классе.
+
+
+Вызов по интерфейсу дороже обычного вызова виртуального метода.
+Потому что класс может реализовывать несколько интерфейсов.
