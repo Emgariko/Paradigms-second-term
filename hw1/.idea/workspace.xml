@@ -37,12 +37,12 @@
     <property name="nodejs_package_manager_path" value="npm" />
   </component>
   <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
-    </key>
     <key name="CreateClassDialog.RecentsKey">
       <recent name="expression.exceptions" />
       <recent name="expression" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -57,7 +57,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Application.hw1ParserPowLog2Test">
+  <component name="RunManager" selected="Application.Main">
     <configuration name="Main" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="expression.exceptions.Main" />
       <module name="hw1" />
@@ -127,6 +127,12 @@
       <workItem from="1581595267762" duration="46234000" />
       <workItem from="1582109196180" duration="21911000" />
       <workItem from="1582201226739" duration="7176000" />
+      <workItem from="1582462525632" duration="463000" />
+      <workItem from="1582469834573" duration="46000" />
+      <workItem from="1582573610803" duration="5000" />
+      <workItem from="1582749631117" duration="2881000" />
+      <workItem from="1582812052877" duration="1077000" />
+      <workItem from="1582834676896" duration="600000" />
     </task>
     <servers />
   </component>
@@ -143,7 +149,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/expression/parser/Main.java</url>
-          <line>18</line>
+          <line>19</line>
           <option name="timeStamp" value="31" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">

@@ -24,7 +24,7 @@ public class ExpressionParser extends BaseParser implements Parser {
             3, TokenType.UNKNOWN // for parseElement debug
     );
     @Override
-    public CommonExpression parse(String expression) {
+    public CommonExpression parse(String expression) throws ParsingException {
         this.source = new StringSource(expression);
         nextChar();
         parseToken(true);
@@ -45,7 +45,7 @@ public class ExpressionParser extends BaseParser implements Parser {
             } else {
                 if (levelType.get(level) == TokenType.MUL) {
                     if (curToken == TokenType.NUMBER) {
-                        throw new UnexpectedNumberException(this.source.getPos());
+                        throw new InvalidOrMissedExpressionException("Unexpected number", this.source.getPos());
                         //throw new ParsinggException("Unexpected number", this.source.getPos());
                     }
                 }
@@ -55,10 +55,10 @@ public class ExpressionParser extends BaseParser implements Parser {
                         //throw new ParsinggException("Expected symbol ')'", this.source.getPos());
                     }
                     if (!expect && curToken == TokenType.RB) {
-                        throw new ParsinggException("Unexpected symbol ')'", this.source.getPos());
+                        throw new InvalidOrMissedExpressionException("Unexpected symbol ')'", this.source.getPos());
                     }
                     if (curToken == TokenType.LB) {
-                        throw new ParsinggException("Unexpected symbol '('", this.source.getPos());
+                        throw new InvalidOrMissedExpressionException("Unexpected symbol '('", this.source.getPos());
                     }
                 }
                 return left;
@@ -107,7 +107,6 @@ public class ExpressionParser extends BaseParser implements Parser {
                 res = parseLevel(0, true, true);
                 if (curToken != TokenType.RB) {
                     throw new MissingBracketException(")", this.source.getPos());
-                    //throw new ParsinggException("Expected symbol ')'", this.source.getPos());
                 }
                 parseToken(false);
                 return res;
@@ -120,20 +119,21 @@ public class ExpressionParser extends BaseParser implements Parser {
             default:
                 switch (curToken){
                     case RB:
-                        throw new ParsinggException("There is no arguments", this.source.getPos());
+                        throw new InvalidOrMissedExpressionException("Missing argument", this.source.getPos());
                     case ADD:
-                        throw new ParsinggException("Missing argument", this.source.getPos());
+                        throw new InvalidOrMissedExpressionException("Missing argument", this.source.getPos());
+                    case SUB:
+                        throw new InvalidOrMissedExpressionException("Missing argument", this.source.getPos());
                     /*case END:
                         throw new ParsingException("Ex", this.source.getPos());*/
 
                 }
-                throw new ParsinggException("Missing argument or unexpected symbol", this.source.getPos());
-                //throw new ParsingException("Unexpected symbol", this.source.getPos());
+                throw new InvalidOrMissedExpressionException("Missing argument or unexpected symbol", this.source.getPos());
         }
         //return null;
     }
 
-    private TokenType parseToken(boolean get) {
+    private TokenType parseToken(boolean get) throws InvalidOrMissedExpressionException {
         skipWhitespace();
         if (test('-')) {
             if (get && between('0', '9')) {
@@ -153,17 +153,17 @@ public class ExpressionParser extends BaseParser implements Parser {
         } else if (test('l')) {
             if (expect("og2")) {
                 if (test('x') || test('y') || test('z')) {
-                    throw new ParsinggException("Unexpected variable", this.source.getPos());
+                    throw new InvalidOrMissedExpressionException("Unexpected variable", this.source.getPos());
                 }
                 return curToken = TokenType.LOG2;
             } else {
-                throw new ParsinggException("Expected 'log2'", this.source.getPos());
+                throw new InvalidOrMissedExpressionException("Expected 'log2'", this.source.getPos());
             }
         } else if (test('p')) {
             if (expect("ow2")) {
                 return curToken = TokenType.POW2;
             } else {
-                throw new ParsinggException("Expected 'pow2'", this.source.getPos());
+                throw new InvalidOrMissedExpressionException("Expected 'pow2'", this.source.getPos());
             }
         } else if (test('+')) {
             return curToken = TokenType.ADD;
@@ -186,7 +186,7 @@ public class ExpressionParser extends BaseParser implements Parser {
         } else if (ch == '\0') {
             return curToken = TokenType.END;
         } else {
-            throw new ParsinggException("Unknown symbol", this.source.getPos());
+            throw new InvalidOrMissedExpressionException("Unknown symbol", this.source.getPos());
         }
     }
 
