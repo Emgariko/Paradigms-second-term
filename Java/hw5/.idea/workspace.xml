@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="ec6c0f75-562f-4036-88b5-9acbbe67c637" name="Default Changelist" comment="" />
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="ProjectId" id="1Yziy6EfAvUHo68dXqtEUgBhhAN" />
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_package_manager_path" value="npm" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="expression" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="expression" />
+    </key>
+    <key name="CreateClassDialog.RecentsKey">
+      <recent name="expression.generic" />
+      <recent name="expression" />
+      <recent name="expression.exceptions" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="RunManager" selected="Application.GenericCmmUlsTest">
+    <configuration name="GenericCmmLsTest" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="expression.generic.GenericLsTest" />
+      <module name="hw5" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenericCmmTest" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="expression.generic.GenericCmmTest" />
+      <module name="hw5" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenericCmmUlsTest" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="expression.generic.GenericCmmUlsTest" />
+      <module name="hw5" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="expression.generic.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenericTest" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="expression.generic.GenericTest" />
+      <module name="hw5" />
+      <option name="VM_PARAMETERS" value="-ea" />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Main" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="expression.generic.Main" />
+      <module name="hw5" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.Main" />
+      <item itemvalue="Application.GenericCmmLsTest" />
+      <item itemvalue="Application.GenericCmmTest" />
+      <item itemvalue="Application.GenericTest" />
+      <item itemvalue="Application.GenericCmmUlsTest" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Application.GenericCmmUlsTest" />
+        <item itemvalue="Application.GenericTest" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ec6c0f75-562f-4036-88b5-9acbbe67c637" name="Default Changelist" comment="" />
+      <created>1583952074430</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1583952074430</updated>
+      <workItem from="1583952076015" duration="40825000" />
+      <workItem from="1584291059902" duration="32319000" />
+      <workItem from="1584538075254" duration="5234000" />
+      <workItem from="1584900799111" duration="1218000" />
+      <workItem from="1585145374909" duration="615000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+</project>
