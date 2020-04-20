@@ -1,13 +1,13 @@
 "use strict";
 
-function Expr(_evaluate, _diff, _toString) {
-    this.prototype.evaluate = _evaluate;
-    this.prototype.diff = _diff;
-    this.prototype.toString = _toString;
+function Expr(evaluate, diff, toString) {
+    this.prototype.evaluate = evaluate;
+    this.prototype.diff = diff;
+    this.prototype.toString = toString;
 }
-function CreateExpr(object, _evaluate, _diff, _toString) {
+function CreateExpr(object, evaluate, diff, toString) {
     object.prototype = Object.create(Expr.prototype);
-    Expr.call(object, _evaluate, _diff, _toString);
+    Expr.call(object, evaluate, diff, toString);
 }
 
 function Const(x) {
@@ -46,14 +46,14 @@ CreateExpr(Operation,
     }
 )
 
-function CreateOperation(_makeOperation, _makeDiff, _operationSymbol) {
+function CreateOperation(makeOperation, makeDiff, operationSymbol) {
     let operation = function (...args) {
         Operation.call(this, ...args);
     };
     operation.prototype = Object.create(Operation.prototype);
-    operation.prototype.makeOperation = _makeOperation;
-    operation.prototype.makeDiff = _makeDiff;
-    operation.prototype.operationSymbol = _operationSymbol
+    operation.prototype.makeOperation = makeOperation;
+    operation.prototype.makeDiff = makeDiff;
+    operation.prototype.operationSymbol = operationSymbol
     return operation
 }
 
@@ -139,4 +139,81 @@ function parse(s) {
     }
     s.trim().split(/\s+/).forEach(parse_token);
     return exprs[0];
+}
+
+function StringSource(data) {
+    this._data = data;
+    this._pos = 0;
+}
+StringSource.prototype.hasNext = function() { return this.pos < this._data.length; }
+StringSource.prototype.next = function() { return this._data[this._pos++]; }
+StringSource.prototype.getPos = function() { return this._pos; }
+
+function Parser(source) {
+    this.source = source;
+    let cur = '';
+    let curTokenType;
+    function isWhiteSpace(value) {
+        return /\s/.test(value);
+    }
+    function isNumeric(value) {
+        return value.match('/^-{0,1}\d+$/');
+    }
+    function isOperation(value) {
+        return value in tokenToOperation;
+    }
+
+    this.parse = function(mode) {
+        parseGlobal(mode);
+    }
+    this.parseGlobal = function(mode) {
+        let token = parseToken();
+        cur = token;
+        let res;
+        if (curTokenType === "Lb") {
+            res = parseExpression();
+        } else if (curTokenType === "Variable") {
+            res = parseVaribale();
+        } else if (curTokenType === "Const") {
+            res = parseConst();
+        }
+        return res;
+    };
+
+    this.parseExpression = function(mode) {
+        let content = [];
+        while (true) {
+            let token = parseToken();
+            if (curTokenType == 'Lb') {
+                content.push(parseExpression(mode));
+            } else if (curTokenType === "Const") {
+                content.push(new Const(token));
+            } else if (curTokenType === "Variable") {
+                content.push(new Variable(token));
+            }
+            if (cur == ')') {
+                break;
+            }
+        }
+        //:TODO:Expression constructing
+    }
+    function skipWhiteSpaces() {
+
+    }
+    this.parseToken = function() {
+        let ch = source.next();
+        skipWhiteSpaces(ch);
+        if (isWhiteSpace(ch)) { // isWhiteSpace
+            continue;
+        }
+        if (ch == '(') {
+
+        }
+    }
+
+}
+
+function ParsePrefix(s) {
+    let parser = new Parser(new StringSource(s.trim()));
+    return parser.parse();
 }
