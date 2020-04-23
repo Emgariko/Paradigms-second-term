@@ -1,13 +1,14 @@
 "use strict";
 
-function Expr(evaluate, diff, toString) {
+function Expr(evaluate, diff, toString, prefix) {
     this.prototype.evaluate = evaluate;
     this.prototype.diff = diff;
     this.prototype.toString = toString;
+    this.prototype.prefix = prefix;
 }
-function CreateExpr(object, evaluate, diff, toString) {
+function CreateExpr(object, evaluate, diff, toString, prefix) {
     object.prototype = Object.create(Expr.prototype);
-    Expr.call(object, evaluate, diff, toString);
+    Expr.call(object, evaluate, diff, toString, prefix);
 }
 
 function Const(x) {
@@ -16,7 +17,9 @@ function Const(x) {
 CreateExpr(Const,
     function() { return this.x },
     function() { return new Const(0) },
-    function() { return this.x.toString() }
+    function() { return this.x.toString() },
+    function () { return this.x.toString() }
+    //:TODO: fix copy-paste
 )
 
 const vars = {"x" : 0, "y" : 1, "z" : 2};
@@ -27,8 +30,11 @@ function Variable(name) {
 CreateExpr(Variable,
     function(...args) { return args[this.argIndex] },
     function(variable) { return new Const(this.name === variable ? 1 : 0) },
+    function() { return this.name.toString() },
     function() { return this.name.toString() }
+    //:TODO: fix copy-paste
 )
+
 
 
 function Operation(...args) {
@@ -43,6 +49,9 @@ CreateExpr(Operation,
     },
     function () {
         return this.operands.map((x) => x.toString() + ' ').reduce((x, res) => x + res, '') + this.operationSymbol
+    },
+    function() {
+        return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
     }
 )
 
@@ -53,7 +62,7 @@ function CreateOperation(makeOperation, makeDiff, operationSymbol) {
     operation.prototype = Object.create(Operation.prototype);
     operation.prototype.makeOperation = makeOperation;
     operation.prototype.makeDiff = makeDiff;
-    operation.prototype.operationSymbol = operationSymbol
+    operation.prototype.operationSymbol = operationSymbol;
     return operation
 }
 
@@ -145,10 +154,13 @@ function StringSource(data) {
     this._data = data;
     this._pos = 0;
 }
-StringSource.prototype.hasNext = function() { return this.pos < this._data.length; }
-StringSource.prototype.next = function() { return this._data[this._pos++]; }
+StringSource.prototype.hasNext = function() { return this._pos < this._data.length; }
+StringSource.prototype.next = function() { return this.hasNext() ? this._data[this._pos++] : '\0'; }
+StringSource.prototype.cur = function() { return this.hasNext() ? this._data[this._pos] : '\0'; }
+StringSource.prototype.inc = function() { this._pos++; }
 StringSource.prototype.getPos = function() { return this._pos; }
-
+StringSource.prototype.check = function(ch) { return this.cur() === ch; } // arrow-function ?
+StringSource.prototype.end = function() { return this._pos === this._data.length; }
 function Parser(source) {
     this.source = source;
     let cur = '';
@@ -156,64 +168,137 @@ function Parser(source) {
     function isWhiteSpace(value) {
         return /\s/.test(value);
     }
-    function isNumeric(value) {
-        return value.match('/^-{0,1}\d+$/');
+    function isNumber(value) {
+        return /^-{0,1}\d+$/.test(value);
     }
     function isOperation(value) {
         return value in tokenToOperation;
     }
+    function isWord(value) {
+        return /^[0-9a-zA-Z]+$/.test(value);
+    }
+    function tokenType(token) {
+        if (token === '(') {
+            return "Lb";
+        } else if (token === ')') {
+            return "Rb";
+        } else if (isNumber(token)) {
+            return "Const";
+        } else if (token in tokenToOperation) {
+            return "Operation";
+        } else if (token in vars) {
+            return "Variable";
+        } else {
+            throw new Error("Unknown symbol");
+        }
+    }
 
     this.parse = function(mode) {
-        parseGlobal(mode);
+        return parseGlobal(mode);
     }
-    this.parseGlobal = function(mode) {
+    function parseGlobal(mode) {
         let token = parseToken();
-        cur = token;
         let res;
-        if (curTokenType === "Lb") {
-            res = parseExpression();
-        } else if (curTokenType === "Variable") {
-            res = parseVaribale();
-        } else if (curTokenType === "Const") {
-            res = parseConst();
+        if (tokenType(token) === "Lb") {
+            res = parseExpression(mode);
+            let bracket = parseToken();
+            if (tokenType(bracket) != 'Rb') {
+                throw new Error("Expected Bracket");
+            }
+        } else if (tokenType(token) === 'Variable') {
+            res = new Variable(token);
+        } else if (tokenType(token) === 'Const') {
+            res = new Const(+token);
+        } else if (tokenType(token) === "Rb") {
+            throw new Error("Unexpected Bracket");
+        } else if (tokenType(token) === "Operation") {
+            throw new Error("Expected Bracket before " + token + " operation");
+        }
+        if (!source.end()) {
+            token = parseToken();
+            throw new Error("Unexpected symbol: " + token[0]);
         }
         return res;
     };
 
-    this.parseExpression = function(mode) {
+    function parseExpression(mode) {
         let content = [];
+        let token;
+        let operationCounter = 0, operationId = -1;
         while (true) {
-            let token = parseToken();
-            if (curTokenType == 'Lb') {
+            if (operationId != -1) {
+                let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
+                if (content.length -1 === x) {
+                    // throw new Error("Too many arguments for operation " + content[operationId]);
+                    break;
+                }
+            }
+            token = parseToken();
+            if (tokenType(token) === 'Lb') {
                 content.push(parseExpression(mode));
-            } else if (curTokenType === "Const") {
-                content.push(new Const(token));
-            } else if (curTokenType === "Variable") {
+                let bracket = parseToken();                      //      (+ (* x 2) 10)
+                if (tokenType(bracket) != 'Rb') {
+                    throw new Error("Expected Bracket");
+                }
+            } else if (tokenType(token) === 'Const') {
+                content.push(new Const(+token));
+            } else if (tokenType(token) === 'Variable') {
                 content.push(new Variable(token));
-            }
-            if (cur == ')') {
+            } else if (tokenType(token) === 'Operation') {
+                content.push(token);
+                operationCounter++;
+                operationId = content.length - 1;
+            } else if (tokenType(token) === "Rb") {
+                throw new Error("Unexpected Bracket");
+            }/*else if (tokenType(token) === 'Rb') {
                 break;
-            }
+            } */// else other cases
         }
-        //:TODO:Expression constructing
+        /*token = parseToken();
+         logic edited if (tokenType(token) != 'Rb') {
+            // throw new missing bracket ...
+            throw new Error;
+        }*/
+        if (mode === "prefix" && operationId != 0) {
+            // throw new invalid format ...
+            throw new Error;
+        }
+        if (mode === "postfix" && operationId != content.length - 1) {
+            // throw new invalid format ...
+            throw new Error;
+        }
+        let l = 0, r = content.length - 1;
+        if (mode === "prefix") {
+            l++;
+        } else if (mode === "postfix") {
+            r--;
+        }
+        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
     }
     function skipWhiteSpaces() {
-
-    }
-    this.parseToken = function() {
-        let ch = source.next();
-        skipWhiteSpaces(ch);
-        if (isWhiteSpace(ch)) { // isWhiteSpace
-            continue;
-        }
-        if (ch == '(') {
-
+        while (isWhiteSpace(source.cur())) {
+            source.next();
         }
     }
-
+    function parseToken() {
+        skipWhiteSpaces();
+        if (source.check('(') || source.check(')')) {
+            return source.next();
+        }
+        let token = '';
+        while (source.hasNext() && !isWhiteSpace(source.cur()) && !source.check('(') && !source.check(')')) {
+            token = token + source.cur();
+            source.next();
+        }
+        return token;
+    }
 }
 
-function ParsePrefix(s) {
+function parsePrefix(s) {
     let parser = new Parser(new StringSource(s.trim()));
-    return parser.parse();
+    let res = parser.parse("prefix");
+    return res;
 }
+
+//console.log(s.next());
+// console.log(parsePrefix("+ x 2").toString());
