@@ -1,14 +1,16 @@
 "use strict";
+//delay
 
-function Expr(evaluate, diff, toString, prefix) {
+function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.evaluate = evaluate;
     this.prototype.diff = diff;
     this.prototype.toString = toString;
     this.prototype.prefix = prefix;
+    this.prototype.postfix = postfix;
 }
-function CreateExpr(object, evaluate, diff, toString, prefix) {
+function CreateExpr(object, evaluate, diff, toString, prefix, postfix) {
     object.prototype = Object.create(Expr.prototype);
-    Expr.call(object, evaluate, diff, toString, prefix);
+    Expr.call(object, evaluate, diff, toString, prefix, postfix);
 }
 
 function Const(x) {
@@ -18,6 +20,7 @@ CreateExpr(Const,
     function() { return this.x },
     function() { return new Const(0) },
     function() { return this.x.toString() },
+    function () { return this.x.toString() },
     function () { return this.x.toString() }
     //:TODO: fix copy-paste
 )
@@ -30,6 +33,7 @@ function Variable(name) {
 CreateExpr(Variable,
     function(...args) { return args[this.argIndex] },
     function(variable) { return new Const(this.name === variable ? 1 : 0) },
+    function() { return this.name.toString() },
     function() { return this.name.toString() },
     function() { return this.name.toString() }
     //:TODO: fix copy-paste
@@ -52,6 +56,9 @@ CreateExpr(Operation,
     },
     function() {
         return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
+    },
+    function() {
+    return '(' + (this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
     }
 )
 
@@ -122,6 +129,9 @@ const Log = CreateOperation(
     "log",
 )
 
+const SumExp = CreateOperation() {
+    function()
+}
 
 const tokenToOperation = {
     "+" : Add,
@@ -300,5 +310,10 @@ function parsePrefix(s) {
     return res;
 }
 
+function parsePostfix(s) {
+    let parser = new Parser(new StringSource(s.trim()));
+    let res = parser.parse("postfix");
+    return res;
+}
 //console.log(s.next());
-// console.log(parsePrefix("+ x 2").toString());
+// console.log((new Add(new Const('12'), new Variable("x"))).postfix());
