@@ -128,10 +128,12 @@ const Log = CreateOperation(
     )) },
     "log",
 )
+/*
 
 const SumExp = CreateOperation() {
     function()
 }
+*/
 
 const tokenToOperation = {
     "+" : Add,
@@ -170,7 +172,7 @@ StringSource.prototype.cur = function() { return this.hasNext() ? this._data[thi
 StringSource.prototype.inc = function() { this._pos++; }
 StringSource.prototype.getPos = function() { return this._pos; }
 StringSource.prototype.check = function(ch) { return this.cur() === ch; } // arrow-function ?
-StringSource.prototype.end = function() { return this._pos === this._data.length; }
+
 function Parser(source) {
     this.source = source;
     let cur = '';
@@ -211,10 +213,6 @@ function Parser(source) {
         let res;
         if (tokenType(token) === "Lb") {
             res = parseExpression(mode);
-            let bracket = parseToken();
-            if (tokenType(bracket) != 'Rb') {
-                throw new Error("Expected Bracket");
-            }
         } else if (tokenType(token) === 'Variable') {
             res = new Variable(token);
         } else if (tokenType(token) === 'Const') {
@@ -224,7 +222,7 @@ function Parser(source) {
         } else if (tokenType(token) === "Operation") {
             throw new Error("Expected Bracket before " + token + " operation");
         }
-        if (!source.end()) {
+        if (source.hasNext()) {
             token = parseToken();
             throw new Error("Unexpected symbol: " + token[0]);
         }
@@ -235,6 +233,51 @@ function Parser(source) {
         let content = [];
         let token;
         let operationCounter = 0, operationId = -1;
+        while (true) {
+            token = parseToken();
+            let type = tokenType(token);
+            switch (type) {
+                case 'Lb':
+                    content.push(parseExpression(mode));
+                    break;
+                case 'Const':
+                    content.push(new Const(+token));
+                    break;
+                case 'Variable':
+                    content.push(new Variable(token));
+                    break;
+                case 'Operation':
+                    content.push(token);
+                    operationCounter++;
+                    operationId = content.length - 1;
+                    break;
+                case 'Rb':
+                    break;
+            }
+            if (type === 'Rb') {
+                break;
+            }
+        }
+        if (mode === "prefix" && operationId != 0) {
+            // throw new invalid format ...
+            throw new Error;
+        }
+        if (mode === "postfix" && operationId != content.length - 1) {
+            // throw new invalid format ...
+            throw new Error;
+        }
+        let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
+        if (content.length - 1 != x) {
+            throw new Error("Too many arguments for operation " + content[operationId]);
+        }
+        let l = 0, r = content.length - 1;
+        if (mode === "prefix") {
+            l++;
+        } else if (mode === "postfix") {
+            r--;
+        }
+        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
+        /*
         while (true) {
             if (operationId != -1) {
                 let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
@@ -260,15 +303,15 @@ function Parser(source) {
                 operationId = content.length - 1;
             } else if (tokenType(token) === "Rb") {
                 throw new Error("Unexpected Bracket");
-            }/*else if (tokenType(token) === 'Rb') {
+            }/!*else if (tokenType(token) === 'Rb') {
                 break;
-            } */// else other cases
+            } *!/// else other cases
         }
-        /*token = parseToken();
+        /!*token = parseToken();
          logic edited if (tokenType(token) != 'Rb') {
             // throw new missing bracket ...
             throw new Error;
-        }*/
+        }*!/
         if (mode === "prefix" && operationId != 0) {
             // throw new invalid format ...
             throw new Error;
@@ -283,13 +326,14 @@ function Parser(source) {
         } else if (mode === "postfix") {
             r--;
         }
-        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
+        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));*/
     }
     function skipWhiteSpaces() {
         while (isWhiteSpace(source.cur())) {
             source.next();
         }
     }
+
     function parseToken() {
         skipWhiteSpaces();
         if (source.check('(') || source.check(')')) {
@@ -317,3 +361,5 @@ function parsePostfix(s) {
 }
 //console.log(s.next());
 // console.log((new Add(new Const('12'), new Variable("x"))).postfix());
+//console.log(parsePrefix('(/ (negate x) y 2)'));
+console.log(parsePrefix('(+ x 2)'));
