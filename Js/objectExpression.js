@@ -76,13 +76,13 @@ function CreateOperation(makeOperation, makeDiff, operationSymbol) {
 const Add = CreateOperation(
     function(l, r) { return l + r },
     function(variable, l, r) { return (new Add(l.diff(variable), r.diff(variable)))} ,
-    "+",
+    "+"
 )
 
 const Subtract = CreateOperation(
     function(l, r) { return l - r },
     function(variable, l, r) { return (new Subtract(l.diff(variable), r.diff(variable))) },
-    "-",
+    "-"
 )
 
 const Divide = CreateOperation(
@@ -91,20 +91,20 @@ const Divide = CreateOperation(
         new Subtract(
             new Multiply(l.diff(variable), r), new Multiply(l, r.diff(variable))),
         new Multiply(r, r))) },
-    "/",
+    "/"
 )
 
 const Multiply = CreateOperation(
     function(l, r) { return l * r },
     function(variable, l, r) { return (new Add(
         new Multiply(l.diff(variable), r), new Multiply(l, r.diff(variable)))) },
-    "*",
+    "*"
 )
 
 const Negate = CreateOperation(
     function(l) { return -l; },
     function(variable, l) { return (new Negate(l.diff(variable))) },
-    "negate",
+    "negate"
 )
 
 const Power = CreateOperation(
@@ -113,7 +113,7 @@ const Power = CreateOperation(
         new Power(l, new Subtract(r, new Const(1))),
         new Add(
             new Multiply(r, l.diff(variable)), new Multiply(l, new Multiply(new Log(E, l), r.diff(variable)))))) },
-    "pow",
+    "pow"
 )
 
 const E = new Const(Math.E);
@@ -126,14 +126,34 @@ const Log = CreateOperation(
             new Divide(new Multiply(l.diff(variable), new Log(E, r)), l)
         ), new Multiply(new Log(E, l), new Log(E, l))
     )) },
-    "log",
+    "log"
 )
-/*
 
-const SumExp = CreateOperation() {
-    function()
-}
-*/
+
+const buildSum = function(...args) {
+    let res = new Add(new Const(0), args[0]);
+    for (let i = 1; i < args.length; i++) {
+        res = new Add(res, args[i]);
+    }
+    return res;
+} //:TODO:edit this func
+
+const Sumexp = CreateOperation(
+    function(...args) { return args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) },
+    function(variable, ...args) {
+        return buildSum(args.forEach((element) => (new Multiply(new Power(E, element), element.diff(variable)))));
+    },
+    "sumexp"
+)
+
+const SoftMax = CreateOperation(
+    function(...args) { return args[0] / Sumexp.prototype.makeOperation(...args)},
+    function(variable, ...args) {
+        return new Divide(new Power(args[0]), buildSum(args).diff(variable));
+    },
+    "softmax"
+)
+
 
 const tokenToOperation = {
     "+" : Add,
@@ -142,8 +162,10 @@ const tokenToOperation = {
     "/" : Divide,
     "negate" : Negate,
     "pow" : Power,
-    "log" : Log
-};
+    "log" : Log,
+    "softmax" : SoftMax,
+    "sumexp" : Sumexp
+}; //:TODO or not TODO:add lazy function link finder.
 
 function parse(s) {
     let exprs = []
@@ -267,7 +289,7 @@ function Parser(source) {
             throw new Error;
         }
         let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
-        if (content.length - 1 != x) {
+        if (x != 0 && content.length - 1 != x) {
             throw new Error("Too many arguments for operation " + content[operationId]);
         }
         let l = 0, r = content.length - 1;
@@ -362,4 +384,14 @@ function parsePostfix(s) {
 //console.log(s.next());
 // console.log((new Add(new Const('12'), new Variable("x"))).postfix());
 //console.log(parsePrefix('(/ (negate x) y 2)'));
-console.log(parsePrefix('(+ x 2)'));
+//console.log(parsePrefix('(+ x 2)'));
+/*let fff = function(...args) { args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) };
+console.log(fff());
+console.log([].reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0));
+console.log(((new Sumexp()).operands).reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0));
+
+let f = new Sumexp();
+let ff = f.operands;
+console.log(f.makeOperation(ff.map((element) => element.evaluate(...ff))));*/
+//return this.makeOperation(...this.operands.map((element) => element.evaluate(...args)))
+//console.log((new Sumexp()).evaluate());
