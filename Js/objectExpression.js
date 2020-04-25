@@ -1,5 +1,4 @@
 "use strict";
-//delay
 
 function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.evaluate = evaluate;
@@ -58,7 +57,7 @@ CreateExpr(Operation,
         return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
     },
     function() {
-    return '(' + (this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
+    return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
     }
 )
 
@@ -70,7 +69,7 @@ function CreateOperation(makeOperation, makeDiff, operationSymbol) {
     operation.prototype.makeOperation = makeOperation;
     operation.prototype.makeDiff = makeDiff;
     operation.prototype.operationSymbol = operationSymbol;
-    return operation
+    return operation;
 }
 
 const Add = CreateOperation(
@@ -110,7 +109,7 @@ const Negate = CreateOperation(
 const Power = CreateOperation(
     function (l, r) { return Math.pow(l, r) },
     function(variable, l, r) { return (new Multiply(
-        new Power(l, new Subtract(r, new Const(1))),
+        new Power(l, new Subtract(r, new Const(+'1'))),
         new Add(
             new Multiply(r, l.diff(variable)), new Multiply(l, new Multiply(new Log(E, l), r.diff(variable)))))) },
     "pow"
@@ -131,25 +130,31 @@ const Log = CreateOperation(
 
 
 const buildSum = function(...args) {
-    let res = new Add(new Const(0), args[0]);
-    for (let i = 1; i < args.length; i++) {
+    if (args.length === 1) {
+        return args[0];
+    }
+    let res = new Add(args[0], args[1]);
+    for (let i = 2; i < args.length; i++) {
         res = new Add(res, args[i]);
     }
+    //console.log(...args);
     return res;
 } //:TODO:edit this func
 
 const Sumexp = CreateOperation(
     function(...args) { return args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) },
     function(variable, ...args) {
-        return buildSum(args.forEach((element) => (new Multiply(new Power(E, element), element.diff(variable)))));
+        return (args.length === 0) ? new Const(+'0') : buildSum(...args.map((element) => (new Multiply(new Power(E, element), element.diff(variable)))));
     },
     "sumexp"
 )
 
-const SoftMax = CreateOperation(
-    function(...args) { return args[0] / Sumexp.prototype.makeOperation(...args)},
+const Softmax = CreateOperation(
+    function(...args) { return Math.pow(Math.E, args[0]) / Sumexp.prototype.makeOperation(...args)},
     function(variable, ...args) {
-        return new Divide(new Power(args[0]), buildSum(args).diff(variable));
+        return (args.length === 0 ? new Const(+'0') : (new Divide(new Power(E, args[0]),
+            buildSum(...args.map((element) => new Power(E, element))))
+                                                                    ).diff(variable));
     },
     "softmax"
 )
@@ -163,7 +168,7 @@ const tokenToOperation = {
     "negate" : Negate,
     "pow" : Power,
     "log" : Log,
-    "softmax" : SoftMax,
+    "softmax" : Softmax,
     "sumexp" : Sumexp
 }; //:TODO or not TODO:add lazy function link finder.
 
@@ -280,6 +285,10 @@ function Parser(source) {
                 break;
             }
         }
+        if (operationCounter > 1) {
+            // throw new invalid format ...
+            throw new Error;
+        }
         if (mode === "prefix" && operationId != 0) {
             // throw new invalid format ...
             throw new Error;
@@ -299,56 +308,6 @@ function Parser(source) {
             r--;
         }
         return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
-        /*
-        while (true) {
-            if (operationId != -1) {
-                let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
-                if (content.length -1 === x) {
-                    // throw new Error("Too many arguments for operation " + content[operationId]);
-                    break;
-                }
-            }
-            token = parseToken();
-            if (tokenType(token) === 'Lb') {
-                content.push(parseExpression(mode));
-                let bracket = parseToken();                      //      (+ (* x 2) 10)
-                if (tokenType(bracket) != 'Rb') {
-                    throw new Error("Expected Bracket");
-                }
-            } else if (tokenType(token) === 'Const') {
-                content.push(new Const(+token));
-            } else if (tokenType(token) === 'Variable') {
-                content.push(new Variable(token));
-            } else if (tokenType(token) === 'Operation') {
-                content.push(token);
-                operationCounter++;
-                operationId = content.length - 1;
-            } else if (tokenType(token) === "Rb") {
-                throw new Error("Unexpected Bracket");
-            }/!*else if (tokenType(token) === 'Rb') {
-                break;
-            } *!/// else other cases
-        }
-        /!*token = parseToken();
-         logic edited if (tokenType(token) != 'Rb') {
-            // throw new missing bracket ...
-            throw new Error;
-        }*!/
-        if (mode === "prefix" && operationId != 0) {
-            // throw new invalid format ...
-            throw new Error;
-        }
-        if (mode === "postfix" && operationId != content.length - 1) {
-            // throw new invalid format ...
-            throw new Error;
-        }
-        let l = 0, r = content.length - 1;
-        if (mode === "prefix") {
-            l++;
-        } else if (mode === "postfix") {
-            r--;
-        }
-        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));*/
     }
     function skipWhiteSpaces() {
         while (isWhiteSpace(source.cur())) {
@@ -381,17 +340,3 @@ function parsePostfix(s) {
     let res = parser.parse("postfix");
     return res;
 }
-//console.log(s.next());
-// console.log((new Add(new Const('12'), new Variable("x"))).postfix());
-//console.log(parsePrefix('(/ (negate x) y 2)'));
-//console.log(parsePrefix('(+ x 2)'));
-/*let fff = function(...args) { args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) };
-console.log(fff());
-console.log([].reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0));
-console.log(((new Sumexp()).operands).reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0));
-
-let f = new Sumexp();
-let ff = f.operands;
-console.log(f.makeOperation(ff.map((element) => element.evaluate(...ff))));*/
-//return this.makeOperation(...this.operands.map((element) => element.evaluate(...args)))
-//console.log((new Sumexp()).evaluate());
