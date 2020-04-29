@@ -17,12 +17,15 @@ function Const(x) {
 }
 CreateExpr(Const,
     function() { return this.x },
-    function() { return new Const(0) },
+    function() { return Const.ZERO },
     function() { return this.x.toString() },
     function () { return this.x.toString() },
     function () { return this.x.toString() }
     //:TODO: fix copy-paste
 )
+
+Const.ZERO = new Const(0);
+Const.ONE = new Const(1);
 
 const vars = {"x" : 0, "y" : 1, "z" : 2};
 function Variable(name) {
@@ -31,7 +34,7 @@ function Variable(name) {
 }
 CreateExpr(Variable,
     function(...args) { return args[this.argIndex] },
-    function(variable) { return new Const(this.name === variable ? 1 : 0) },
+    function(variable) { return this.name === variable ? Const.ONE : Const.ZERO},
     function() { return this.name.toString() },
     function() { return this.name.toString() },
     function() { return this.name.toString() }
@@ -144,7 +147,8 @@ const buildSum = function(...args) {
 const Sumexp = CreateOperation(
     function(...args) { return args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) },
     function(variable, ...args) {
-        return (args.length === 0) ? new Const(+'0') : buildSum(...args.map((element) => (new Multiply(new Power(E, element), element.diff(variable)))));
+        return (args.length === 0) ? new Const(+'0') : buildSum(...args.map((element) =>
+            (new Multiply(new Power(E, element), element.diff(variable)))));
     },
     "sumexp"
 )
@@ -170,7 +174,7 @@ const tokenToOperation = {
     "log" : Log,
     "softmax" : Softmax,
     "sumexp" : Sumexp
-}; //:TODO or not TODO:add lazy function link finder.
+};
 
 function parse(s) {
     let exprs = []
@@ -200,6 +204,13 @@ StringSource.prototype.inc = function() { this._pos++; }
 StringSource.prototype.getPos = function() { return this._pos; }
 StringSource.prototype.check = function(ch) { return this.cur() === ch; } // arrow-function ?
 
+function ExpressionError(msg) {
+    this.message = msg;
+}
+ExpressionError.prototype = Object.create(Error.prototype);
+ExpressionError.prototype.name = "ExpressionError";
+ExpressionError.prototype.constructor = ExpressionError;
+
 function Parser(source) {
     this.source = source;
     let cur = '';
@@ -228,7 +239,11 @@ function Parser(source) {
         } else if (token in vars) {
             return "Variable";
         } else {
-            throw new Error("Unknown symbol");
+            if (token === '\0') {
+                throw new ExpressionError("Unexpected end of source");
+            } else {
+                throw new ExpressionError("Unknown or unexpected symbol");
+            }
         }
     }
 
@@ -245,13 +260,13 @@ function Parser(source) {
         } else if (tokenType(token) === 'Const') {
             res = new Const(+token);
         } else if (tokenType(token) === "Rb") {
-            throw new Error("Unexpected Bracket");
+            throw new ExpressionError("Unexpected Bracket");
         } else if (tokenType(token) === "Operation") {
-            throw new Error("Expected Bracket before " + token + " operation");
+            throw new ExpressionError("Expected Bracket before " + token + " operation");
         }
         if (source.hasNext()) {
             token = parseToken();
-            throw new Error("Unexpected symbol: " + token[0]);
+            throw new ExpressionError("Unexpected symbol: " + token[0]);
         }
         return res;
     };
@@ -286,20 +301,17 @@ function Parser(source) {
             }
         }
         if (operationCounter > 1) {
-            // throw new invalid format ...
-            throw new Error;
+            throw new ExpressionError("Invalid operation format");
         }
         if (mode === "prefix" && operationId != 0) {
-            // throw new invalid format ...
-            throw new Error;
+            throw new ExpressionError("Invalid operation format");
         }
         if (mode === "postfix" && operationId != content.length - 1) {
-            // throw new invalid format ...
-            throw new Error;
+            throw new ExpressionError("Invalid operation format");
         }
         let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
         if (x != 0 && content.length - 1 != x) {
-            throw new Error("Too many arguments for operation " + content[operationId]);
+            throw new ExpressionError("Too many arguments for operation " + content[operationId]);
         }
         let l = 0, r = content.length - 1;
         if (mode === "prefix") {
