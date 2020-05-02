@@ -1,7 +1,9 @@
 (defn vsize-equals? [args] (every? (fn [x] (== (count (first args)) (count x))) args))
 (defn msize-equals? [args] (vsize-equals? args))
+(defn tsize-equals? [args] (vsize-equals? args))
 (defn isVector? [v] (and (every? number? v) (vector? v)))
 (defn isMatrix? [m] (and (vector? m) (every? isVector? m) (vsize-equals? m)))
+(defn isTensor? [t] (true))
 (defn create-operation [isType? size-equals?]
   (fn [operation]
     (fn [& args] {:pre [(every? isType? args) (size-equals? args)] :post [(isType? %)]} (apply mapv operation args))
@@ -9,6 +11,7 @@
 
 (def vector-operation (create-operation isVector? vsize-equals?))
 (def matrix-operation (create-operation isMatrix? msize-equals?))
+(def tensor-operation (create-operation isTensor? tsize-equals?))
 
 (def v+ (vector-operation +))
 (def v- (vector-operation -))
@@ -28,7 +31,6 @@
           args)
   )
 
-
 (def m+ (matrix-operation v+))
 (def m* (matrix-operation v*))
 (def m- (matrix-operation v-))
@@ -37,3 +39,13 @@
 (defn m*s [m & ss] {:pre [(isMatrix? m) (every? number? ss)]} (mapv (fn [x] (v*s x (apply * ss))) m))
 (defn m*m [& args] {:pre [(every? isMatrix? args)]}
   (reduce (fn [a b] (transpose (mapv (partial m*v a) (transpose b)))) args))
+
+(defn tensor-function [operation]
+  (letfn [(tensor-calc [& args]
+            ((if (vector? args) (apply mapv args operation) (apply mapv (partial(tensor-calc operation)) args))))
+          ] (partial (tensor-calc))
+    ))
+
+(def t+ (tensor-operation (tensor-calc +)))
+(def t- (tensor-operation (tensor-calc -)))
+(def t* (tensor-operation (tensor-calc *)))

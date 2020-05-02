@@ -1,5 +1,7 @@
 "use strict";
 
+//review & delay
+
 function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.evaluate = evaluate;
     this.prototype.diff = diff;
@@ -21,7 +23,6 @@ CreateExpr(Const,
     function() { return this.x.toString() },
     function () { return this.x.toString() },
     function () { return this.x.toString() }
-    //:TODO: fix copy-paste
 )
 
 Const.ZERO = new Const(0);
@@ -38,7 +39,6 @@ CreateExpr(Variable,
     function() { return this.name.toString() },
     function() { return this.name.toString() },
     function() { return this.name.toString() }
-    //:TODO: fix copy-paste
 )
 
 
@@ -60,7 +60,7 @@ CreateExpr(Operation,
         return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
     },
     function() {
-    return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
+        return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
     }
 )
 
@@ -142,7 +142,7 @@ const buildSum = function(...args) {
     }
     //console.log(...args);
     return res;
-} //:TODO:edit this func
+}
 
 const Sumexp = CreateOperation(
     function(...args) { return args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) },
@@ -157,8 +157,8 @@ const Softmax = CreateOperation(
     function(...args) { return Math.pow(Math.E, args[0]) / Sumexp.prototype.makeOperation(...args)},
     function(variable, ...args) {
         return (args.length === 0 ? new Const(+'0') : (new Divide(new Power(E, args[0]),
-            buildSum(...args.map((element) => new Power(E, element))))
-                                                                    ).diff(variable));
+                buildSum(...args.map((element) => new Power(E, element))))
+        ).diff(variable));
     },
     "softmax"
 )
@@ -202,7 +202,7 @@ StringSource.prototype.next = function() { return this.hasNext() ? this._data[th
 StringSource.prototype.cur = function() { return this.hasNext() ? this._data[this._pos] : '\0'; }
 StringSource.prototype.inc = function() { this._pos++; }
 StringSource.prototype.getPos = function() { return this._pos; }
-StringSource.prototype.check = function(ch) { return this.cur() === ch; } // arrow-function ?
+StringSource.prototype.check = function(ch) { return this.cur() === ch; }
 
 function ExpressionError(msg) {
     this.message = msg;
@@ -238,13 +238,20 @@ function Parser(source) {
             return "Operation";
         } else if (token in vars) {
             return "Variable";
+        } else if (token === '\0') {
+            return "End";
+        } else if (token === "") {
+            return "Empty";
         } else {
-            if (token === '\0') {
+            // try to replace throw out of here
+            throw new ExpressionError("Unknown symbol");
+            //throw new ExpressionError("Unknown or unexpected symbol");
+        }
+            /*if (token === '\0') {
                 throw new ExpressionError("Unexpected end of source");
             } else {
-                throw new ExpressionError("Unknown or unexpected symbol");
-            }
-        }
+
+            }*/
     }
 
     this.parse = function(mode) {
@@ -255,18 +262,23 @@ function Parser(source) {
         let res;
         if (tokenType(token) === "Lb") {
             res = parseExpression(mode);
-        } else if (tokenType(token) === 'Variable') {
-            res = new Variable(token);
-        } else if (tokenType(token) === 'Const') {
-            res = new Const(+token);
-        } else if (tokenType(token) === "Rb") {
-            throw new ExpressionError("Unexpected Bracket");
-        } else if (tokenType(token) === "Operation") {
-            throw new ExpressionError("Expected Bracket before " + token + " operation");
+        } else {
+            if (tokenType(token) === 'Variable') {
+                res = new Variable(token);
+            } else if (tokenType(token) === 'Const') {
+                res = new Const(+token);
+            } else if (tokenType(token) === "Rb") {
+                throw new ExpressionError("Unexpected ) bracket");
+            } else if (tokenType(token) === "Operation") {
+                throw new ExpressionError("Expected Bracket before " + token + " operation");
+            } else if (tokenType(token) === "End") {
+                throw new ExpressionError("Unexpected end of source");
+            }
         }
         if (source.hasNext()) {
             token = parseToken();
-            throw new ExpressionError("Unexpected symbol: " + token[0]);
+            //throw new ExpressionError("Unexpected symbol: " + token[0]);
+            throw new ExpressionError("Expected ( bracket");
         }
         return res;
     };
@@ -293,6 +305,8 @@ function Parser(source) {
                     operationCounter++;
                     operationId = content.length - 1;
                     break;
+                case 'End':
+                    throw new ExpressionError("Missing ) bracket");
                 case 'Rb':
                     break;
             }
@@ -301,7 +315,8 @@ function Parser(source) {
             }
         }
         if (operationCounter > 1) {
-            throw new ExpressionError("Invalid operation format");
+            throw new ExpressionError("Missing ( bracket");
+            //throw new ExpressionError("Invalid operation format");
         }
         if (mode === "prefix" && operationId != 0) {
             throw new ExpressionError("Invalid operation format");
@@ -337,18 +352,26 @@ function Parser(source) {
             token = token + source.cur();
             source.next();
         }
+        token = (token === '') ? source.next() : token;
         return token;
     }
 }
 
 function parsePrefix(s) {
+    //console.log(s);
     let parser = new Parser(new StringSource(s.trim()));
     let res = parser.parse("prefix");
     return res;
 }
 
 function parsePostfix(s) {
+    //console.log(s);
     let parser = new Parser(new StringSource(s.trim()));
     let res = parser.parse("postfix");
     return res;
 }
+
+
+//parsePrefix("(+ x + x x))");
+//parsePrefix("z (x y +) *");
+//parsePrefix("()");
