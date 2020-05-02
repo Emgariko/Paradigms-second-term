@@ -211,165 +211,158 @@ ExpressionError.prototype.constructor = ExpressionError;
 
 function Parser(source) {
     this.source = source;
-    let cur = '';
-    let curTokenType;
-    function isWhiteSpace(value) {
-        return /\s/.test(value);
+}
+Parser.prototype.isWhiteSpace = function(value) {
+    return /\s/.test(value);
+}
+Parser.prototype.isNumber = function(value) {
+    return /^-{0,1}\d+$/.test(value);
+}
+Parser.prototype.isOperation = function(value) {
+    return value in tokenToOperation;
+}
+Parser.prototype.isWord = function(value) {
+    return /^[0-9a-zA-Z]+$/.test(value);
+}
+Parser.prototype.tokenType = function(token) {
+    if (token === '(') {
+        return "Lb";
+    } else if (token === ')') {
+        return "Rb";
+    } else if (this.isNumber(token)) {
+        return "Const";
+    } else if (token in tokenToOperation) {
+        return "Operation";
+    } else if (token in vars) {
+        return "Variable";
+    } else if (token === '\0') {
+        return "End";
+    } else if (token === "") {
+        return "Empty";
+    } else {
+        // try to replace throw out of here
+        throw new ExpressionError("Unknown symbol");
+        //throw new ExpressionError("Unknown or unexpected symbol");
     }
-    function isNumber(value) {
-        return /^-{0,1}\d+$/.test(value);
-    }
-    function isOperation(value) {
-        return value in tokenToOperation;
-    }
-    function isWord(value) {
-        return /^[0-9a-zA-Z]+$/.test(value);
-    }
-    function tokenType(token) {
-        if (token === '(') {
-            return "Lb";
-        } else if (token === ')') {
-            return "Rb";
-        } else if (isNumber(token)) {
-            return "Const";
-        } else if (token in tokenToOperation) {
-            return "Operation";
-        } else if (token in vars) {
-            return "Variable";
-        } else if (token === '\0') {
-            return "End";
-        } else if (token === "") {
-            return "Empty";
-        } else {
-            // try to replace throw out of here
-            throw new ExpressionError("Unknown symbol");
-            //throw new ExpressionError("Unknown or unexpected symbol");
-        }
-            /*if (token === '\0') {
-                throw new ExpressionError("Unexpected end of source");
-            } else {
+    /*if (token === '\0') {
+        throw new ExpressionError("Unexpected end of source");
+    } else {
 
-            }*/
-    }
-
-    this.parse = function(mode) {
-        return parseGlobal(mode);
-    }
-    function parseGlobal(mode) {
-        let token = parseToken();
-        let res;
-        if (tokenType(token) === "Lb") {
-            res = parseExpression(mode);
-        } else {
-            if (tokenType(token) === 'Variable') {
-                res = new Variable(token);
-            } else if (tokenType(token) === 'Const') {
-                res = new Const(+token);
-            } else if (tokenType(token) === "Rb") {
-                throw new ExpressionError("Unexpected ) bracket");
-            } else if (tokenType(token) === "Operation") {
-                throw new ExpressionError("Expected Bracket before " + token + " operation");
-            } else if (tokenType(token) === "End") {
-                throw new ExpressionError("Unexpected end of source");
-            }
+    }*/
+}
+Parser.prototype.parseGlobal = "";
+/*Parser.prototype.parse = function(mode) {
+    return this.prototype.parseGlobal(mode);
+}*/
+Parser.prototype.parse = function(mode) {
+    let token = this.parseToken();
+    let res;
+    if (this.tokenType(token) === "Lb") {
+        res = this.parseExpression(mode);
+    } else {
+        if (this.tokenType(token) === 'Variable') {
+            res = new Variable(token);
+        } else if (this.tokenType(token) === 'Const') {
+            res = new Const(+token);
+        } else if (this.tokenType(token) === "Rb") {
+            throw new ExpressionError("Unexpected ) bracket");
+        } else if (this.tokenType(token) === "Operation") {
+            throw new ExpressionError("Expected Bracket before " + token + " operation");
+        } else if (this.tokenType(token) === "End") {
+            throw new ExpressionError("Unexpected end of source");
         }
-        if (source.hasNext()) {
-            token = parseToken();
-            //throw new ExpressionError("Unexpected symbol: " + token[0]);
-            throw new ExpressionError("Expected ( bracket");
-        }
-        return res;
-    };
-
-    function parseExpression(mode) {
-        let content = [];
-        let token;
-        let operationCounter = 0, operationId = -1;
-        while (true) {
-            token = parseToken();
-            let type = tokenType(token);
-            switch (type) {
-                case 'Lb':
-                    content.push(parseExpression(mode));
-                    break;
-                case 'Const':
-                    content.push(new Const(+token));
-                    break;
-                case 'Variable':
-                    content.push(new Variable(token));
-                    break;
-                case 'Operation':
-                    content.push(token);
-                    operationCounter++;
-                    operationId = content.length - 1;
-                    break;
-                case 'End':
-                    throw new ExpressionError("Missing ) bracket");
-                case 'Rb':
-                    break;
-            }
-            if (type === 'Rb') {
+    }
+    if (this.source.hasNext()) {
+        token = this.parseToken();
+        //throw new ExpressionError("Unexpected symbol: " + token[0]);
+        throw new ExpressionError("Expected ( bracket");
+    }
+    return res;
+}
+Parser.prototype.parseExpression = function(mode) {
+    let content = [];
+    let token;
+    let operationCounter = 0, operationId = -1;
+    while (true) {
+        token = this.parseToken();
+        let type = this.tokenType(token);
+        switch (type) {
+            case 'Lb':
+                content.push(this.parseExpression(mode));
                 break;
-            }
+            case 'Const':
+                content.push(new Const(+token));
+                break;
+            case 'Variable':
+                content.push(new Variable(token));
+                break;
+            case 'Operation':
+                content.push(token);
+                operationCounter++;
+                operationId = content.length - 1;
+                break;
+            case 'End':
+                throw new ExpressionError("Missing ) bracket");
+            case 'Rb':
+                break;
         }
-        if (operationCounter > 1) {
-            throw new ExpressionError("Missing ( bracket");
-            //throw new ExpressionError("Invalid operation format");
-        }
-        if (mode === "prefix" && operationId != 0) {
-            throw new ExpressionError("Invalid operation format");
-        }
-        if (mode === "postfix" && operationId != content.length - 1) {
-            throw new ExpressionError("Invalid operation format");
-        }
-        let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
-        if (x != 0 && content.length - 1 != x) {
-            throw new ExpressionError("Too many arguments for operation " + content[operationId]);
-        }
-        let l = 0, r = content.length - 1;
-        if (mode === "prefix") {
-            l++;
-        } else if (mode === "postfix") {
-            r--;
-        }
-        return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
-    }
-    function skipWhiteSpaces() {
-        while (isWhiteSpace(source.cur())) {
-            source.next();
+        if (type === 'Rb') {
+            break;
         }
     }
-
-    function parseToken() {
-        skipWhiteSpaces();
-        if (source.check('(') || source.check(')')) {
-            return source.next();
-        }
-        let token = '';
-        while (source.hasNext() && !isWhiteSpace(source.cur()) && !source.check('(') && !source.check(')')) {
-            token = token + source.cur();
-            source.next();
-        }
-        token = (token === '') ? source.next() : token;
-        return token;
+    if (operationCounter > 1) {
+        throw new ExpressionError("Missing ( bracket");
+        //throw new ExpressionError("Invalid operation format");
+    }
+    if (mode === "prefix" && operationId != 0) {
+        throw new ExpressionError("Invalid operation format");
+    }
+    if (mode === "postfix" && operationId != content.length - 1) {
+        throw new ExpressionError("Invalid operation format");
+    }
+    let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
+    if (x !== 0 && content.length - 1 !== x) {
+        throw new ExpressionError("Too many arguments for operation " + content[operationId]);
+    }
+    let l = 0, r = content.length - 1;
+    if (mode === "prefix") {
+        l++;
+    } else if (mode === "postfix") {
+        r--;
+    }
+    return new tokenToOperation[content[operationId]](...content.slice(l, r + 1));
+}
+Parser.prototype.skipWhiteSpaces = function() {
+    while (this.isWhiteSpace(this.source.cur())) {
+        this.source.next();
     }
 }
+Parser.prototype.parseToken = function() {
+    this.skipWhiteSpaces();
+    if (this.source.check('(') || this.source.check(')')) {
+        return this.source.next();
+    }
+    let token = '';
+    while (this.source.hasNext() && !this.isWhiteSpace(this.source.cur()) && !this.source.check('(') && !this.source.check(')')) {
+        token = token + this.source.cur();
+        this.source.next();
+    }
+    token = (token === '') ? this.source.next() : token;
+    return token;
+}
 
+function ExpressionParser(source) {
+    Parser.call(this, source);
+}
+ExpressionParser.prototype = Object.create(Parser.prototype);
 function parsePrefix(s) {
-    //console.log(s);
-    let parser = new Parser(new StringSource(s.trim()));
+    let parser = new ExpressionParser(new StringSource(s.trim()));
     let res = parser.parse("prefix");
     return res;
 }
 
 function parsePostfix(s) {
-    //console.log(s);
-    let parser = new Parser(new StringSource(s.trim()));
+    let parser = new ExpressionParser(new StringSource(s.trim()));
     let res = parser.parse("postfix");
     return res;
 }
-
-
-//parsePrefix("(+ x + x x))");
-//parsePrefix("z (x y +) *");
-//parsePrefix("()");
