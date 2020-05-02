@@ -1,7 +1,5 @@
 "use strict";
 
-//review & delay
-
 function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.evaluate = evaluate;
     this.prototype.diff = diff;
