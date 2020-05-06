@@ -3,15 +3,18 @@
 (defn tsize-equals? [args] (vsize-equals? args))
 (defn isVector? [v] (and (every? number? v) (vector? v)))
 (defn isMatrix? [m] (and (vector? m) (every? isVector? m) (vsize-equals? m)))
-(defn isTensor? [t] (and true))
+(defn isTensor? [t] (or (number? t)
+                        (every? number? t) (and (vsize-equals? t)
+                                                (isTensor? (reduce (fn [a, b] (apply conj a b)) t)))))
 
+
+(defn operation-precond [size-equals? args] (or (every? number? args) (size-equals? args)))
 (defn create-operation [isType? size-equals?]
   (fn [operation]
   (letfn [(tensor-calc' [& args]
+            {:pre [(operation-precond size-equals? args)]}
             (if (every? number? args) (apply operation args) (apply mapv tensor-calc' args)))]
-    ;(fn [& args] (apply tensor-calc' args))))
-    (fn [& args] {:pre [(every? isType? args) (size-equals? args)] :post [(isType? %)]} (apply tensor-calc' args))
-    )))
+    (fn [& args] {:pre [(every? isType? args)] :post [(isType? %)]} (apply tensor-calc' args)))))
 
 (def vector-operation (create-operation isVector? vsize-equals?))
 (def matrix-operation (create-operation isMatrix? msize-equals?))
