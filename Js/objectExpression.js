@@ -1,5 +1,8 @@
 "use strict";
 
+// :NOTE: `Variable op (0 args)     : org.graalvm.polyglot.PolyglotException: ExpressionError: Invalid operation format` where exactly
+// Non user-friendly error messages
+
 function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.evaluate = evaluate;
     this.prototype.diff = diff;
@@ -7,66 +10,61 @@ function Expr(evaluate, diff, toString, prefix, postfix) {
     this.prototype.prefix = prefix;
     this.prototype.postfix = postfix;
 }
-function CreateExpr(object, evaluate, diff, toString, prefix, postfix) {
+function setMethods(object, evaluate, diff, toString, prefix = toString, postfix = toString) {
     object.prototype = Object.create(Expr.prototype);
     Expr.call(object, evaluate, diff, toString, prefix, postfix);
 }
 
-function Const(x) {
-    this.x = x;
+//:NOTE: Const and Variable should be declared in the same way as other expressions (const Const = someFactory(...))
+// fixed
+
+function CreateConstOrVariable(constructor, get, diff, toString, prefix = toString, postfix = toString) {
+    let result = constructor;
+    setMethods(result, get, diff, toString);
+    return result;
 }
-CreateExpr(Const,
+const Const = CreateConstOrVariable(
+    function(x) { this.x = x; },
     function() { return this.x },
     function() { return Const.ZERO },
-    function() { return this.x.toString() },
+    function() { return this.x.toString() }/*,
     function () { return this.x.toString() },
-    function () { return this.x.toString() }
+    function () { return this.x.toString() }*/
 )
-
 Const.ZERO = new Const(0);
 Const.ONE = new Const(1);
-
-const vars = {"x" : 0, "y" : 1, "z" : 2};
-function Variable(name) {
-    this.name = name;
-    this.argIndex = vars[name];
-}
-CreateExpr(Variable,
+const Variable = CreateConstOrVariable(
+    function(name) { this.name = name; this.argIndex = vars[name];},
     function(...args) { return args[this.argIndex] },
     function(variable) { return this.name === variable ? Const.ONE : Const.ZERO},
+    function() { return this.name.toString() }/*,
     function() { return this.name.toString() },
-    function() { return this.name.toString() },
-    function() { return this.name.toString() }
+    function() { return this.name.toString() }*/
 )
-
-
-
-function Operation(...args) {
-    this.operands = args;
-}
-CreateExpr(Operation,
-    function (...args) {
-        return this.makeOperation(...this.operands.map((element) => element.evaluate(...args)))
-    },
-    function (variable) {
-        return this.makeDiff(variable, ...this.operands)
-    },
-    function () {
-        return this.operands.map((x) => x.toString() + ' ').reduce((x, res) => x + res, '') + this.operationSymbol
-    },
-    function() {
-        return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
-    },
-    function() {
-        return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
-    }
-)
+const vars = {"x" : 0, "y" : 1, "z" : 2};
 
 function CreateOperation(makeOperation, makeDiff, operationSymbol) {
     let operation = function (...args) {
-        Operation.call(this, ...args);
+        this.operands = args;
     };
-    operation.prototype = Object.create(Operation.prototype);
+    setMethods(operation,
+        function (...args) {
+            return this.makeOperation(...this.operands.map((element) => element.evaluate(...args)))
+        },
+        function (variable) {
+            return this.makeDiff(variable, ...this.operands)
+        },
+        // :NOTE: copy-pasted code for `toString`, `prefix`, `postfix` (it can be described with one method with special parameters)
+        function () {
+            return this.operands.map((x) => x.toString() + ' ').reduce((x, res) => x + res, '') + this.operationSymbol
+        },
+        function() {
+            return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
+        },
+        function() {
+            return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
+        }
+    );
     operation.prototype.makeOperation = makeOperation;
     operation.prototype.makeDiff = makeDiff;
     operation.prototype.operationSymbol = operationSymbol;
@@ -74,6 +72,7 @@ function CreateOperation(makeOperation, makeDiff, operationSymbol) {
 }
 
 const Add = CreateOperation(
+    // :NOTE: use arrow notation (=>) for anonymous functions
     function(l, r) { return l + r },
     function(variable, l, r) { return (new Add(l.diff(variable), r.diff(variable)))} ,
     "+"
@@ -161,7 +160,7 @@ const Softmax = CreateOperation(
     "softmax"
 )
 
-
+// :NOTE: duplicated operators signs declaration (they are already mentioned in operators)
 const tokenToOperation = {
     "+" : Add,
     "-" : Subtract,
@@ -191,24 +190,68 @@ function parse(s) {
     return exprs[0];
 }
 
-function StringSource(data) {
-    this._data = data;
-    this._pos = 0;
+function CreateStringSource() {
+    let source = function(data) {
+        this._data = data;
+        this._pos = 0;
+    }
+    source.prototype.hasNext = function() { return this._pos < this._data.length; }
+    source.prototype.next = function() { return this.hasNext() ? this._data[this._pos++] : '\0'; }
+    source.prototype.cur = function() { return this.hasNext() ? this._data[this._pos] : '\0'; }
+    source.prototype.inc = function() { this._pos++; }
+    source.prototype.getPos = function() { return this._pos; }
+    source.prototype.check = function(ch) { return this.cur() === ch; }
+    source.prototype.getSubstr = function() { return this._data.substring(Math.max(this._pos - 10, 0),
+        Math.min(this._pos + 10, this._data.length)) }
+    return source;
 }
-StringSource.prototype.hasNext = function() { return this._pos < this._data.length; }
-StringSource.prototype.next = function() { return this.hasNext() ? this._data[this._pos++] : '\0'; }
-StringSource.prototype.cur = function() { return this.hasNext() ? this._data[this._pos] : '\0'; }
-StringSource.prototype.inc = function() { this._pos++; }
-StringSource.prototype.getPos = function() { return this._pos; }
-StringSource.prototype.check = function(ch) { return this.cur() === ch; }
 
-function ExpressionError(msg) {
-    this.message = msg;
+//:NOTE: when have the rules changed? Why it's not wrapped into some factory method?
+//fixed
+const StringSource = CreateStringSource();
+
+//:NOTE: when have the rules changed? Why it's not wrapped into some factory method?
+function ExpressionError(message) {
+    this.message = message;
 }
 ExpressionError.prototype = Object.create(Error.prototype);
-ExpressionError.prototype.name = "ExpressionError";
-ExpressionError.prototype.constructor = ExpressionError;
+ExpressionError.constructor = ExpressionError;
+function CreateExpressionError(name, head) {
+    let error = function(source, message = '') {
+        ExpressionError.call(this, head + ' ' + message + ' , at ' + source.getPos() + ": " + source.getSubstr());
+    }
+    error.prototype = Object.create(ExpressionError.prototype);
+    error.prototype.constructor = ExpressionError;
+    error.prototype.name = name;
+    return error;
+}
 
+const UnknownSymbolError = CreateExpressionError("UnknownSymbolError", "Unknown symbol");
+const UnexpectedRBracketError = CreateExpressionError("UnexpectedRBracketError", "Unknown right bracket");
+const MissingBracketError = CreateExpressionError("MissingBracketError", "Expected bracket");
+const UnexpectedEndError =  CreateExpressionError("UnknownEndError", "Unexpected end of source");
+const InvalidOperationFormatError = CreateExpressionError("InvalidOperationFormatError", "Invalid operation format");
+
+//Unknown or unexpected sumbol +
+//Unexpected ) +
+//Expected ( +
+//Unexpected end of source +
+//Missing ) +
+//Invalid oper format  {
+//too many args        }
+
+
+/*const makeError = function (messagePrefix) {
+    let result = function(source) {
+        CustomError.call(this, messagePrefix + source.getSubstr());
+    };
+    result.prototype = Object.create(CustomError.prototype);
+    result.prototype.constructor = CustomError;
+    return result;
+};*/
+
+
+// :NOTE: too many code for parser. The limit is 50-60 non-blank lines
 function Parser(source) {
     this.source = source;
 }
@@ -241,7 +284,8 @@ Parser.prototype.tokenType = function(token) {
         return "Empty";
     } else {
         // try to replace throw out of here
-        throw new ExpressionError("Unknown symbol");
+        //throw new ExpressionError("Unknown symbol", this.source);
+        throw new UnknownSymbolError(this.source);
         //throw new ExpressionError("Unknown or unexpected symbol");
     }
     /*if (token === '\0') {
@@ -250,6 +294,7 @@ Parser.prototype.tokenType = function(token) {
 
     }*/
 }
+
 Parser.prototype.parseGlobal = "";
 /*Parser.prototype.parse = function(mode) {
     return this.prototype.parseGlobal(mode);
@@ -265,17 +310,21 @@ Parser.prototype.parse = function(mode) {
         } else if (this.tokenType(token) === 'Const') {
             res = new Const(+token);
         } else if (this.tokenType(token) === "Rb") {
-            throw new ExpressionError("Unexpected ) bracket");
+            throw new UnexpectedRBracketError(this.source);
+            //throw new ExpressionError("Unexpected ) bracket", this.source);
         } else if (this.tokenType(token) === "Operation") {
-            throw new ExpressionError("Expected Bracket before " + token + " operation");
+            throw new MissingBracketError(this.source);
+            //throw new ExpressionError("Expected Bracket before " + token + " operation", this.source);
         } else if (this.tokenType(token) === "End") {
-            throw new ExpressionError("Unexpected end of source");
+            throw new UnexpectedEndError(this.source);
+            //throw new ExpressionError("Unexpected end of source", this.source);
         }
     }
     if (this.source.hasNext()) {
         token = this.parseToken();
         //throw new ExpressionError("Unexpected symbol: " + token[0]);
-        throw new ExpressionError("Expected ( bracket");
+        throw new MissingBracketError(this.source, "'('");
+        //throw new ExpressionError("Expected ( bracket", this.source);
     }
     return res;
 }
@@ -302,7 +351,8 @@ Parser.prototype.parseExpression = function(mode) {
                 operationId = content.length - 1;
                 break;
             case 'End':
-                throw new ExpressionError("Missing ) bracket");
+                throw new MissingBracketError(this.source, "')'");
+                //throw new ExpressionError("Missing ) bracket", this.source);
             case 'Rb':
                 break;
         }
@@ -311,18 +361,22 @@ Parser.prototype.parseExpression = function(mode) {
         }
     }
     if (operationCounter > 1) {
-        throw new ExpressionError("Missing ( bracket");
+        throw new MissingBracketError(this.source, "'('");
+        //throw new ExpressionError("Missing ( bracket", this.source);
         //throw new ExpressionError("Invalid operation format");
     }
     if (mode === "prefix" && operationId != 0) {
-        throw new ExpressionError("Invalid operation format");
+        throw new InvalidOperationFormatError(this.source);
+        //throw new ExpressionError("Invalid operation format", this.source);
     }
     if (mode === "postfix" && operationId != content.length - 1) {
-        throw new ExpressionError("Invalid operation format");
+        throw new InvalidOperationFormatError(this.source);
+        //throw new ExpressionError("Invalid operation format", this.source);
     }
     let x = tokenToOperation[content[operationId]].prototype.makeOperation.length;
     if (x !== 0 && content.length - 1 !== x) {
-        throw new ExpressionError("Too many arguments for operation " + content[operationId]);
+        throw new InvalidOperationFormatError(this.source, "too many arguments for operation " + content[operationId]);
+        //throw new ExpressionError("Too many arguments for operation " + content[operationId], this.source);
     }
     let l = 0, r = content.length - 1;
     if (mode === "prefix") {
@@ -357,12 +411,10 @@ function ExpressionParser(source) {
 ExpressionParser.prototype = Object.create(Parser.prototype);
 function parsePrefix(s) {
     let parser = new ExpressionParser(new StringSource(s.trim()));
-    let res = parser.parse("prefix");
-    return res;
+    return parser.parse("prefix");
 }
 
 function parsePostfix(s) {
     let parser = new ExpressionParser(new StringSource(s.trim()));
-    let res = parser.parse("postfix");
-    return res;
+    return parser.parse("postfix");
 }
