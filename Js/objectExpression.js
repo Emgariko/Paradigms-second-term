@@ -42,7 +42,10 @@ const Variable = CreateConstOrVariable(
     function() { return this.name.toString() }*/
 )
 const vars = {"x" : 0, "y" : 1, "z" : 2};
-
+let tokenToOperation = {};/*
+function AbsractToSpecialFormat(format, brackets) { // it's to fix copy-paste for 'toString', 'prefix', 'postfix'
+    return function() { }
+}*/ //:TODO: fix it
 function CreateOperation(makeOperation, makeDiff, operationSymbol) {
     let operation = function (...args) {
         this.operands = args;
@@ -55,76 +58,79 @@ function CreateOperation(makeOperation, makeDiff, operationSymbol) {
             return this.makeDiff(variable, ...this.operands)
         },
         // :NOTE: copy-pasted code for `toString`, `prefix`, `postfix` (it can be described with one method with special parameters)
-        function () {
-            return this.operands.map((x) => x.toString() + ' ').reduce((x, res) => x + res, '') + this.operationSymbol
+        // :TODO:
+
+        function() {
+            return this.operands.join(' ') + ' ' + this.operationSymbol;
         },
         function() {
-            return '(' + (this.operationSymbol + ' ' + this.operands.map((x) => x.prefix() + ' ').reduce((x, res) => x + res, '')).slice(0, -1) + ')';
+            return '(' + this.operationSymbol + ' ' + this.operands.map(x => x.prefix()).join(' ') + ')';
         },
         function() {
-            return '(' + (this.operands.length === 0 ? ' ' : this.operands.map((x) => x.postfix() + ' ').reduce((x, res) => x + res, '')) + this.operationSymbol + ')';
+            return '(' + this.operands.map(x => x.postfix()).join(' ') + ' ' + this.operationSymbol + ')';
         }
     );
     operation.prototype.makeOperation = makeOperation;
     operation.prototype.makeDiff = makeDiff;
     operation.prototype.operationSymbol = operationSymbol;
+    tokenToOperation[operationSymbol] = operation;
     return operation;
 }
 
 const Add = CreateOperation(
     // :NOTE: use arrow notation (=>) for anonymous functions
-    function(l, r) { return l + r },
-    function(variable, l, r) { return (new Add(l.diff(variable), r.diff(variable)))} ,
+    // fixed
+    (l, r) => (l + r),
+    (variable, l, r) => new Add(l.diff(variable), r.diff(variable)),
     "+"
 )
 
 const Subtract = CreateOperation(
-    function(l, r) { return l - r },
-    function(variable, l, r) { return (new Subtract(l.diff(variable), r.diff(variable))) },
+    (l, r) => (l - r),
+    (variable, l, r) => new Subtract(l.diff(variable), r.diff(variable)),
     "-"
 )
 
 const Divide = CreateOperation(
-    function(l, r) { return l / r },
-    function(variable, l, r) { return (new Divide(
+    (l, r) => (l / r),
+    (variable, l, r) => new Divide(
         new Subtract(
             new Multiply(l.diff(variable), r), new Multiply(l, r.diff(variable))),
-        new Multiply(r, r))) },
+        new Multiply(r, r)),
     "/"
 )
 
 const Multiply = CreateOperation(
-    function(l, r) { return l * r },
-    function(variable, l, r) { return (new Add(
-        new Multiply(l.diff(variable), r), new Multiply(l, r.diff(variable)))) },
+    (l, r) => (l * r) ,
+    (variable, l, r) => (new Add(
+        new Multiply(l.diff(variable), r), new Multiply(l, r.diff(variable)))),
     "*"
 )
 
 const Negate = CreateOperation(
-    function(l) { return -l; },
-    function(variable, l) { return (new Negate(l.diff(variable))) },
+    (l) => (-l),
+    (variable, l) => (new Negate(l.diff(variable))),
     "negate"
 )
 
 const Power = CreateOperation(
-    function (l, r) { return Math.pow(l, r) },
-    function(variable, l, r) { return (new Multiply(
+    (l, r) => (Math.pow(l, r)),
+    (variable, l, r) => (new Multiply(
         new Power(l, new Subtract(r, new Const(+'1'))),
         new Add(
-            new Multiply(r, l.diff(variable)), new Multiply(l, new Multiply(new Log(E, l), r.diff(variable)))))) },
+            new Multiply(r, l.diff(variable)), new Multiply(l, new Multiply(new Log(E, l), r.diff(variable)))))),
     "pow"
 )
 
 const E = new Const(Math.E);
-
 const Log = CreateOperation(
-    function(l, r) { return Math.log(Math.abs(r)) / Math.log(Math.abs(l)) },
-    function(variable, l, r) { return (new Divide(
+    (l, r) => (Math.log(Math.abs(r)) / Math.log(Math.abs(l))),
+    (variable, l, r) => (new Divide(
         new Subtract(
             new Divide(new Multiply(new Log(E, l), r.diff(variable)), r),
             new Divide(new Multiply(l.diff(variable), new Log(E, r)), l)
         ), new Multiply(new Log(E, l), new Log(E, l))
-    )) },
+    )) ,
     "log"
 )
 
@@ -142,26 +148,27 @@ const buildSum = function(...args) {
 }
 
 const Sumexp = CreateOperation(
-    function(...args) { return args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0) },
-    function(variable, ...args) {
-        return (args.length === 0) ? new Const(+'0') : buildSum(...args.map((element) =>
-            (new Multiply(new Power(E, element), element.diff(variable)))));
-    },
+    (...args) => (args.reduce((acc, cur) => acc + Math.pow(Math.E, cur), 0)),
+    (variable, ...args) => (
+        (args.length === 0) ? new Const(+'0') : buildSum(...args.map((element) =>
+            (new Multiply(new Power(E, element), element.diff(variable)))))
+    ),
     "sumexp"
 )
 
 const Softmax = CreateOperation(
-    function(...args) { return Math.pow(Math.E, args[0]) / Sumexp.prototype.makeOperation(...args)},
-    function(variable, ...args) {
-        return (args.length === 0 ? new Const(+'0') : (new Divide(new Power(E, args[0]),
+    (...args) => (Math.pow(Math.E, args[0]) / Sumexp.prototype.makeOperation(...args)),
+    (variable, ...args) => (
+        args.length === 0 ? new Const(+'0') : (new Divide(new Power(E, args[0]),
                 buildSum(...args.map((element) => new Power(E, element))))
-        ).diff(variable));
-    },
+        ).diff(variable)
+    ),
     "softmax"
 )
 
 // :NOTE: duplicated operators signs declaration (they are already mentioned in operators)
-const tokenToOperation = {
+// fixed : tokenToOperation builded in CreateOperation
+/*const tokenToOperation = {
     "+" : Add,
     "-" : Subtract,
     "*" : Multiply,
@@ -171,7 +178,7 @@ const tokenToOperation = {
     "log" : Log,
     "softmax" : Softmax,
     "sumexp" : Sumexp
-};
+};*/
 
 function parse(s) {
     let exprs = []
@@ -194,6 +201,7 @@ function CreateStringSource() {
     let source = function(data) {
         this._data = data;
         this._pos = 0;
+        this.curToken = "";
     }
     source.prototype.hasNext = function() { return this._pos < this._data.length; }
     source.prototype.next = function() { return this.hasNext() ? this._data[this._pos++] : '\0'; }
@@ -201,8 +209,66 @@ function CreateStringSource() {
     source.prototype.inc = function() { this._pos++; }
     source.prototype.getPos = function() { return this._pos; }
     source.prototype.check = function(ch) { return this.cur() === ch; }
-    source.prototype.getSubstr = function() { return this._data.substring(Math.max(this._pos - 10, 0),
+    source.prototype.getSubstr = function() { return this._data.substring(Math.max(this._pos - 15, 0),
         Math.min(this._pos + 10, this._data.length)) }
+    source.prototype.isWhiteSpace = function(value) {
+        return /\s/.test(value);
+    }
+    source.prototype.skipWhiteSpaces = function() {
+        while (this.isWhiteSpace(this.cur())) {
+            this.next();
+        }
+    }
+    source.prototype.nextToken = function(convert) {
+        this.skipWhiteSpaces();
+        if (this.check('(') || this.check(')')) {
+            this.curToken = this.next();
+            return convert ? this.handle(this.curToken) : this.curToken;
+        }
+        let token = '';
+        while (this.hasNext() && !this.isWhiteSpace(this.cur()) && !this.check('(') && !this.check(')')) {
+            token = token + this.cur();
+            this.next();
+        }
+        token = (token === '') ? this.next() : token;
+        this.curToken = token;
+        return convert ? this.handle(token) : token;
+    }
+    source.prototype.getCurToken = function(convert) {
+        return convert ? this.handle(this.curToken) : this.curToken;
+    }
+    source.prototype.tokenCond = {
+        "Lb" : (token) => (token === '('),
+        "Rb" : (token) => (token === ')'),
+        "Const" : (token) => (/^-{0,1}\d+$/.test(token)),
+        "Operation" : (token) => (token in tokenToOperation),
+        "Variable" : (token) => (token in vars),
+        "End" : (token) => (token === '\0'),
+        "Empty" : (token) => (token === "")
+    }
+    source.prototype.handle = function(token) {
+        //(this.tokenCond.entries()).forEac
+        /*for (let cur in this.tokenCond) {)
+            if (this.tokenCond[cur](token)) {
+                return cur;
+            }
+        }*/
+        if (token === "(") {
+            return "Lb";
+        } else if (token === ")") {
+            return "Rb";
+        } else if (/^-{0,1}\d+$/.test(token)) {
+            return "Const";
+        } else if (token in tokenToOperation) {
+            return "Operation";
+        } else if (token in vars) {
+            return "Variable";
+        } else if (token === "\0") {
+            return "End";
+        } else if (token === "") {
+            return "Empty";
+        }
+    }
     return source;
 }
 
@@ -211,6 +277,8 @@ function CreateStringSource() {
 const StringSource = CreateStringSource();
 
 //:NOTE: when have the rules changed? Why it's not wrapped into some factory method?
+//fixed
+//:TODO: create new factory-method
 function ExpressionError(message) {
     this.message = message;
 }
@@ -218,7 +286,7 @@ ExpressionError.prototype = Object.create(Error.prototype);
 ExpressionError.constructor = ExpressionError;
 function CreateExpressionError(name, head) {
     let error = function(source, message = '') {
-        ExpressionError.call(this, head + ' ' + message + ' , at ' + source.getPos() + ": " + source.getSubstr());
+        ExpressionError.call(this, head + (message === '' ? "" : "")  + message + ', at pos ' + source.getPos() + ": " + source.getSubstr());
     }
     error.prototype = Object.create(ExpressionError.prototype);
     error.prototype.constructor = ExpressionError;
@@ -227,31 +295,93 @@ function CreateExpressionError(name, head) {
 }
 
 const UnknownSymbolError = CreateExpressionError("UnknownSymbolError", "Unknown symbol");
+const UnexpectedTokenError = CreateExpressionError("UnexpectedTokenError", "Unexpected token");
 const UnexpectedRBracketError = CreateExpressionError("UnexpectedRBracketError", "Unknown right bracket");
 const MissingBracketError = CreateExpressionError("MissingBracketError", "Expected bracket");
 const UnexpectedEndError =  CreateExpressionError("UnknownEndError", "Unexpected end of source");
 const InvalidOperationFormatError = CreateExpressionError("InvalidOperationFormatError", "Invalid operation format");
 
-//Unknown or unexpected sumbol +
-//Unexpected ) +
-//Expected ( +
-//Unexpected end of source +
-//Missing ) +
-//Invalid oper format  {
-//too many args        }
+function CreateParser() {
+    let Parser = function(source) {
+        this.source = source;
+    }
+    Parser.prototype.test = function(condition, error, message) {
+        if (condition) { throw new error(this.source, message);}
+    }
+    Parser.prototype.throwError = function(error, message) {
+        throw new error(this.source, message);
+    }
+    let _mode = undefined;
+    Parser.prototype.parse = function(mode) {
+        this.source.nextToken();
+        let result = this.parseExpr();
+        _mode = mode;
+        this.test(this.source.hasNext(), UnexpectedTokenError, "'" + this.source.getCurToken(false) + "'");
+        return result;
+    }
+    Parser.prototype.parseExpr = function() {
+        let token = this.source.getCurToken(true);
+        if (token === "Lb") {
+            let cur = '', content = [], operationCounter = 0, pos = -1;
+            while (this.source.nextToken(true) !== "Rb" && this.source.hasNext()) {
+                cur = this.source.getCurToken(true);
+                if (cur === "Lb") {
+                    content.push(this.parseExpr());
+                } else if (cur === "Const") {
+                    content.push(new Const(+this.source.getCurToken(false)));
+                } else if (cur === "Variable") {
+                    content.push(new Variable(this.source.getCurToken(false)));
+                } else if (cur === "Operation"){
+                    content.push(this.source.getCurToken(false));
+                    operationCounter++;
+                    pos = content.length - 1;
+                } else {
+                    this.throwError(UnexpectedTokenError, "'" + this.source.getCurToken(false) + "'");
+                }
+            }
+            this.test(this.source.getCurToken(true) !== "Rb", MissingBracketError, "')'");
+            this.test(operationCounter !== 1, InvalidOperationFormatError);
+            this.test(_mode === "prefix" && pos !== 0, InvalidOperationFormatError, "for prefix mode");
+            this.test(_mode === "postfix" && pos !== content.length - 1, InvalidOperationFormatError, "for postfix mode");
+            let x = tokenToOperation[content[pos]].prototype.makeOperation.length;
+            this.test(x !== 0 && content.length - 1 !== x, InvalidOperationFormatError, ", incorrect count of args");
+            return new tokenToOperation[content[pos]](...content.slice((_mode === "prefix" ? 1 : 0), content.length - 1 - (_mode === "postfix" ? 1 : 0) + 1));
+        } else if (token === "Const") {
+            return new Const(+this.source.getCurToken(false));
+        } else if (token === "Variable") {
+            return new Variable(this.source.getCurToken(false));
+        } else {
+            this.throwError(UnexpectedTokenError, "'" + this.source.getCurToken(false) + "'");
+        }
+    }
+    return Parser;
+}
 
+const ExpressionParser = CreateParser();
 
-/*const makeError = function (messagePrefix) {
-    let result = function(source) {
-        CustomError.call(this, messagePrefix + source.getSubstr());
-    };
-    result.prototype = Object.create(CustomError.prototype);
-    result.prototype.constructor = CustomError;
-    return result;
-};*/
+function parsePrefix(s) {
+    let parser = new ExpressionParser(new StringSource(s.trim()));
+    return parser.parse("prefix");
+}
 
+function parsePostfix(s) {
+    let parser = new ExpressionParser(new StringSource(s.trim()));
+    return parser.parse("postfix");
+}
+//console.log(parsePrefix("(negate)"));
+//console.log(parsePostfix("(x 2 +)"));
+//console.log(parsePostfix("(x 2 +)"));
+//console.log(parsePostfix("( sumexp)"));
+/*const s = new StringSource("zalupa");
+console.log(Object.entries(s.tokenCond).forEach());*/
+/*const Parser = CreateParser();
+const p = new Parser();
+p.parse("x");*/
 
 // :NOTE: too many code for parser. The limit is 50-60 non-blank lines
+// :TODO:
+
+/*
 function Parser(source) {
     this.source = source;
 }
@@ -288,17 +418,17 @@ Parser.prototype.tokenType = function(token) {
         throw new UnknownSymbolError(this.source);
         //throw new ExpressionError("Unknown or unexpected symbol");
     }
-    /*if (token === '\0') {
+    /!*if (token === '\0') {
         throw new ExpressionError("Unexpected end of source");
     } else {
 
-    }*/
+    }*!/
 }
 
 Parser.prototype.parseGlobal = "";
-/*Parser.prototype.parse = function(mode) {
+/!*Parser.prototype.parse = function(mode) {
     return this.prototype.parseGlobal(mode);
-}*/
+}*!/
 Parser.prototype.parse = function(mode) {
     let token = this.parseToken();
     let res;
@@ -417,4 +547,4 @@ function parsePrefix(s) {
 function parsePostfix(s) {
     let parser = new ExpressionParser(new StringSource(s.trim()));
     return parser.parse("postfix");
-}
+}*/
