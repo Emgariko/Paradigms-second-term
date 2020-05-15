@@ -1,18 +1,17 @@
-; delay
+; review
 
 (defn constant [value] (fn [& args] (+ value)))
 (defn variable [var] (fn [vars] (get vars var)))
-(defn expr-operator [func] (fn [& a]
+(defn expr-operation [func] (fn [& a]
                              (fn [arg] (apply func
-                                             (mapv (fn [f] (f arg)) a)))))
-
-(def negate (expr-operator -))
-(def add (expr-operator +))
-(def subtract (expr-operator -))
-(def divide (expr-operator (fn [a b] (/ (double a) (double b)))))
-(def multiply (expr-operator *))
-(def avg (expr-operator (fn [& a] (/ (apply + a) (count a)))))
-(def med (expr-operator (fn [& a] (nth (sort a) (int (/ (count a) 2))))))
+                                             (mapv #(%1 arg) a)))))
+(def negate (expr-operation -))
+(def add (expr-operation +))
+(def subtract (expr-operation -))
+(def divide (expr-operation #(/ (double %1) (double %2))))
+(def multiply (expr-operation *))
+(def avg (expr-operation #(/ (apply + %&) (count %&))))
+(def med (expr-operation #(nth (sort %&) (int (/ (count %&) 2)))))
 
 (def tokenToOperation {'+ add '- subtract '* multiply '/ divide 'negate negate 'avg avg 'med med})
 
