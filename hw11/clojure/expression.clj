@@ -1,4 +1,3 @@
-; review & delay hw 11
 ; accepted hw10
 
 ;***************;
@@ -68,10 +67,11 @@
 (defn diff [exp varr] (.diff exp varr))
 (defn evaluate [exp varr] (.evaluate exp varr))
 
+;(defn create-diff [rule] (fn [varr & args] (rule args (mapv #(diff % varr) args))))
 (defn create-operation [op sym diff']  (fn [& operands] (Operation. op sym diff' operands)))
 (defn create-common-diff [func] (fn [varr & args] (apply func (mapv #(.diff % varr) args))))
 (def Add (create-operation + "+" (create-common-diff #(apply Add %&))))
-(def Subtract (create-operation - "-" (create-common-diff #(apply Subtract %&))))
+(def Subtract (create-operation - "-" (fn [var & args] (apply Subtract (mapv #(.diff % var) args)))))
 (declare Multiply)
 (defn mul-diff [varr & args]
                  (if (= 1 (count args))
@@ -107,4 +107,5 @@
 (def tokenToObjOperation {'+ Add '- Subtract '* Multiply '/ Divide 'negate Negate 'sum Sum 'avg Avg})
 (def parseObject (parse tokenToObjOperation Variable Constant))
 
-(print (toString (diff (Multiply (Constant 4.0) (Variable "z")) "x")))
+;(print (toString (diff (Add (Constant 2) (Variable "y")) "y")))
+;(print (toString (diff (Multiply (Constant 4.0) (Variable "z")) "x")))
