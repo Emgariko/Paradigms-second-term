@@ -45,24 +45,43 @@
 (declare ZERO)
 (declare ONE)
 (comment ":NOTE: merge or remove prototypes for Constant and Variable")
-(deftype Const [value]
+
+(deftype Elementary-Expression
+  [evaluate toString diff elementary]
   Expression
-  (evaluate [this other] value)
-  (toString [this] (format "%.1f" value))
-  (diff [this other] ZERO))
-(def ZERO (Const. 0.0))
-(def ONE (Const. 1.0))
-(deftype Var [variable']
-  Expression
-  (evaluate [this vars] (vars variable'))
-  (toString [this] (str variable'))
-  (diff [this diffVar] (if (= variable' diffVar) ONE ZERO)))
+  (evaluate [this var] (evaluate elementary var))
+  (toString [this] (toString elementary))
+  (diff [this var] (diff elementary var))
+  )
+
+(defn build-elementary [ev tostr dff]
+  (fn [elem] (Elementary-Expression. ev tostr dff elem)))
+
+(declare ZERO)
+
+(def Constant
+  (build-elementary
+    (fn [elema elemb] elema)
+    (fn [x] (format "%.1f" (double x)))
+    (fn [elema elemb] ZERO)))
+(def ZERO (Constant 0.0))
+
+(def Variable
+  (build-elementary
+    (fn [elema elemb] (elemb elema))
+    (fn [elema] elema)
+    (fn [elema elemb]
+      (cond (= elema elemb)
+            ONE
+            :else ZERO))))
+(def ONE (Constant 1.0))
 
 (deftype Operation [operation symbol diffRule operands]
   Expression
   (evaluate [this vars] (apply operation (mapv #(.evaluate %1 vars) (vec operands))))
   (toString [this] (str "(" symbol " " (apply clojure.string/join " " (vector (mapv #(.toString %1) (vec operands)))) ")"))
-  (diff [this diffVar] (apply diffRule diffVar (vec operands))))
+  (diff [this diffVar] (letfn [(create-common-diff [func] (fn [varr & args] (func (mapv #(.diff % varr) args) args)))]
+                         (apply (create-common-diff diffRule) diffVar (vec operands)))))
 
 (defn toString [a] (.toString a))
 (defn diff [exp varr] (.diff exp varr))
@@ -71,50 +90,31 @@
 ;(defn create-diff [rule] (fn [varr & args] (rule args (mapv #(diff % varr) args))))
 (defn create-operation [op sym diff']  (fn [& operands] (Operation. op sym diff' operands)))
 (comment ":NOTE: problem with diff is not solved (copy-paste), you still apply diff on arguments (not in abstraction)")
-(defn create-common-diff [func] (fn [varr & args] (let [dif (mapv #(.diff % varr) args)] (func dif args))))
-(def Add (create-operation + "+" (create-common-diff (fn [a b] (apply Add a)))))
+(def Add (create-operation + "+" (fn [a b] (apply Add a))))
 ;(def Subtract (create-operation - "-" (fn [var & args] (apply Subtract (mapv #(.diff % var) args)))))
 ;(def Subtract (create-operation - "-" (create-common-diff #(apply Subtract %&))))
-(def Subtract (create-operation - "-" (create-common-diff (fn [a b] (apply Subtract a)))))
+(def Subtract (create-operation - "-" (fn [a b] (apply Subtract a))))
 (declare Multiply)
-(defn mul-diff [varr & args]
-  (if (= 1 (count args))
-    (diff (first args) varr)
-    (Add (Multiply (diff (apply Multiply (rest args)) varr) (first args))
-         (apply Multiply (diff (first args) varr) (rest args)))
-    ))
-
 (def Multiply
-  (create-operation * "*"
-                    (create-common-diff (fn [a b]
-                      (if (= 1 (count a))
-                                (first a)
-                                (Add (Multiply (apply Multiply (rest a)) (first b))
-                                     (apply Multiply (first a) (rest b)))
-                                )
-                      ))))
+  (create-operation * "*" (fn [a b]
+                      (if (= 1 (count a)) (first a) (Add (Multiply (apply Multiply (rest a)) (first b))
+                                     (apply Multiply (first a) (rest b)))))))
 (declare Divide)
 ;(def Negate (create-operation - "negate" (fn [var & args] (Negate (diff (first args) var)))))
 (declare Negate)
 ;(def Negate (create-operation - "negate" (fn [vars & args] (Negate (diff (first args) vars)))))
-(def Negate (create-operation - "negate" (create-common-diff (fn [a b] (Negate (first a))))))
+(def Negate (create-operation - "negate" (fn [a b] (Negate (first a)))))
 (def Divide
-  (create-operation (fn ([first] first)
-                      ([first & args] (/ (double first) (apply * args))))
-                    "/" (create-common-diff (fn [a b]
-                    (if (= (count a) 1)
-                      (first a)
-                      (Divide (Subtract
-                                (Multiply (first a) (apply Multiply (rest b)))
+  (create-operation (fn ([first] first) ([first & args] (/ (double first) (apply * args)))) "/" (fn [a b]
+                    (if (= (count a) 1) (first a) (Divide (Subtract (Multiply (first a) (apply Multiply (rest b)))
                                 (Multiply (first b) (apply Multiply (rest a))))
                         (Multiply (apply Multiply (rest b)) (apply Multiply (rest b)))))
-                        ))))
-(def Sum (create-operation + "sum" (create-common-diff (fn [a b] (apply Add a)))))
+                        )))
+(def Sum (create-operation + "sum" (fn [a b] (apply Add a))))
 (def Avg (create-operation #(/ (double (apply + %&)) (double (count %&))) "avg"
-                           (create-common-diff (fn [a b] (Divide (apply Add a) (Const. (count a)))))))
+                           (fn [a b] (Divide (apply Add a) (Constant (count a))))))
 
-(defn Constant [arg] (Const. arg))
-(defn Variable [arg] (Var. arg))
+
 (def tokenToObjOperation {'+ Add '- Subtract '* Multiply '/ Divide 'negate Negate 'sum Sum 'avg Avg})
 (def parseObject (parse tokenToObjOperation Variable Constant))
 
