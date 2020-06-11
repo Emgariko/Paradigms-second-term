@@ -45,6 +45,7 @@
 (declare ZERO)
 (declare ONE)
 (comment ":NOTE: merge or remove prototypes for Constant and Variable")
+(comment "fixed")
 
 (deftype Elementary-Expression
   [evaluate toString diff elementary]
@@ -90,6 +91,7 @@
 ;(defn create-diff [rule] (fn [varr & args] (rule args (mapv #(diff % varr) args))))
 (defn create-operation [op sym diff']  (fn [& operands] (Operation. op sym diff' operands)))
 (comment ":NOTE: problem with diff is not solved (copy-paste), you still apply diff on arguments (not in abstraction)")
+(comment "fixed")
 (def Add (create-operation + "+" (fn [a b] (apply Add a))))
 ;(def Subtract (create-operation - "-" (fn [var & args] (apply Subtract (mapv #(.diff % var) args)))))
 ;(def Subtract (create-operation - "-" (create-common-diff #(apply Subtract %&))))
