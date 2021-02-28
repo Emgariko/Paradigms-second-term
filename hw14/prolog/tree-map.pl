@@ -1,5 +1,3 @@
-% delay & review
-
 map_build([], null) :- true, !.
 map_build([(K, V) | T], TreeMap) :- map_build(T, Res), map_put(Res, K, V, TreeMap), !.
 
@@ -18,12 +16,10 @@ map_get(T, Key, Value) :- T = node(X, XX, Y, L, R), X < Key, !, map_get(R, Key, 
 map_get(T, Key, Value) :- T = node(X, XX, Y, L, R), X = Key, XX = Value, !.
 map_get(T, Key, Value) :- T = node(X, XX, Y, L, R), X > Key, !, map_get(L, Key, Value).
 
-%map_remove(T, KEY, R) :- split(T, R1, R2, KEY), KEY1 is KEY + 1, split(R2, R3, R4, KEY1), merge(R1, R4, R).
 map_remove(T, K, Res) :- map_get(T, K, V), !, del(T, K, Res).
 map_remove(T, K, Res) :- not(map_get(T, K, V)), Res = T, !.
 del(T, Key, Res) :- T = node(X, XX, Y, L, R), X < Key, !, del(R, Key, Res1), Res = node(X, XX, Y, L, Res1).
 del(T, Key, Res) :- T = node(X, XX, Y, L, R), X = Key, !, merge(L, R, Res).
-%del(T, Key, Res) :- T = node(X, XX, Y, L, R), not(map_get(T, 
 del(T, Key, Res) :- T = node(X, XX, Y, L, R), X > Key, !, del(L, Key, Res1), Res = node(X, XX, Y, Res1, R).
 
 split(null, null, null, K) :- !.
